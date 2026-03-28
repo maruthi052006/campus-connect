@@ -14,7 +14,7 @@ class ExploreView(LoginRequiredMixin, ListView):
     model = User
     template_name = 'explore.html'
     context_object_name = 'users'
-    paginate_by = 20
+    paginate_by = 100
 
     def get_queryset(self):
         # Initial queryset: exclude self, select related profile and prefetch skills
