@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Explore{% endblock %}
+
+{% block extra_css %}
+<style>
+  .explore-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+  }
+  .filter-section {
+    position: sticky;
+    top: 72px;
+    height: fit-content;
+  }
+  .filter-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .user-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  @media (max-width: 991.98px) {
+    .explore-layout {
+      grid-template-columns: 1fr;
+    }
+    .filter-section {
+      position: static;
+      height: auto;
+      margin-bottom: 24px;
+    }
+    .filter-card {
+      border-color: var(--primary-light);
+      background: var(--bg-main);
+    }
+  }
+  .filter-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="explore-layout">
+  <!-- Left Filter Sidebar -->
+  <aside class="filter-section collapse d-lg-block" id="filterSidebar">
+    <div class="filter-card shadow-sm">
+      <h5 class="fw-bold mb-4">Filters</h5>
+      
+      <div class="mb-4">
+        <label class="filter-label">Search</label>
+        <div class="position-relative">
+          <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+          <input type="text" id="searchInput" class="form-control rounded-pill ps-5" placeholder="Name or domain..." value="{{ request.GET.q }}">
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="filter-label">Skills</label>
+        <div id="skillsFilter" class="small">
+          {% for skill in all_skills %}
+            <div class="form-check mb-1">
+              <input class="form-check-input skill-cb" type="checkbox" value="{{ skill.name }}" id="skill-{{ forloop.counter }}">
+              <label class="form-check-label" for="skill-{{ forloop.counter }}">{{ skill.name }}</label>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="filter-label">Role</label>
+        <select id="roleFilter" class="form-select form-select-sm rounded-pill">
+          <option value="all">Any Role</option>
+          <option value="Student">Student</option>
+          <option value="Teacher">Faculty</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="filter-label">Batch</label>
+        <select id="batchFilter" class="form-select form-select-sm rounded-pill">
+          <option value="all">Any Year</option>
+          {% for batch in all_batches %}
+            <option value="{{ batch }}">{{ batch }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button class="btn btn-link btn-sm text-decoration-none p-0 w-100 text-start" onclick="resetFilters()">Reset All</button>
+    </div>
+  </aside>
+
+  <!-- Right Results Area -->
+  <main class="results-area">
+    <div class="cc-card mb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div id="resultCount" class="fw-bold text-secondary">{{ users_count|default:users.count }} students found</div>
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-outline-cc btn-sm d-lg-none flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#filterSidebar">
+          <i class="bi bi-filter"></i> Filters
+        </button>
+        <div class="spinner-border spinner-border-sm text-primary d-none" id="loader"></div>
+      </div>
+    </div>
+
+    <div id="resultsGrid" class="user-grid">
+      {% include "includes/user_cards.html" with users=page_obj %}
+    </div>
+
+    {% if is_paginated and page_obj.has_next %}
+      <div class="text-center mt-4">
+        <button class="btn-outline-cc px-5" id="loadMoreBtn">Load More</button>
+      </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let debounceTimer;
+
+  const updateResults = async () => {
+    const loader = document.getElementById('loader');
+    loader.classList.remove('d-none');
+    
+    const q = document.getElementById('searchInput').value;
+    const role = document.getElementById('roleFilter').value;
+    const batch = document.getElementById('batchFilter').value;
+    const skills = Array.from(document.querySelectorAll('.skill-cb:checked')).map(cb => cb.value);
+    
+    const params = new URLSearchParams();
+    if(q) params.append('q', q);
+    if(role !== 'all') params.append('role', role);
+    if(batch !== 'all') params.append('batch', batch);
+    skills.forEach(s => params.append('skills[]', s));
+    params.append('ajax', '1');
+
+    try {
+      const res = await fetch(`?${params.toString()}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      const data = await res.json();
+      document.getElementById('resultsGrid').innerHTML = data.html;
+      document.getElementById('resultCount').innerText = `${data.count} students found`;
+    } catch(err) {
+      console.error(err);
+    } finally {
+      loader.classList.add('d-none');
+    }
+  };
+
+  document.getElementById('searchInput').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(updateResults, 400);
+  });
+
+  ['roleFilter', 'batchFilter'].forEach(id => {
+    document.getElementById(id).addEventListener('change', updateResults);
+  });
+
+  document.querySelectorAll('.skill-cb').forEach(cb => {
+    cb.addEventListener('change', updateResults);
+  });
+
+  window.resetFilters = () => {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('roleFilter').value = 'all';
+    document.getElementById('batchFilter').value = 'all';
+    document.querySelectorAll('.skill-cb').forEach(cb => cb.checked = false);
+    updateResults();
+  };
+
+  // Delegate follow button clicks
+  document.getElementById('resultsGrid').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.follow-btn');
+    if(!btn) return;
+    
+    const userId = btn.dataset.id;
+    btn.disabled = true;
+    try {
+      const res = await fetch("{% url 'connections:follow_toggle_ajax' %}", {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ user_id: userId })
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        if(data.following) {
+          btn.innerText = 'Following';
+          btn.classList.add('btn-primary-cc');
+          btn.classList.remove('btn-outline-cc');
+        } else {
+          btn.innerText = 'Follow';
+          btn.classList.remove('btn-primary-cc');
+          btn.classList.add('btn-outline-cc');
+        }
+      }
+    } catch(err) { console.error(err); }
+    btn.disabled = false;
+  });
+
+  // Delegate connect button clicks
+  document.getElementById('resultsGrid').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.connect-btn');
+    if(!btn) return;
+    
+    const status = btn.dataset.status;
+    if(status === 'connected' || status === 'pending_sent') return;
+
+    btn.disabled = true;
+    try {
+      const endpoint = status === 'pending_received' 
+        ? "{% url 'connections:accept_user_ajax' %}" 
+        : "{% url 'connections:send_connection_request_ajax' %}";
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ user_id: btn.dataset.id })
+      });
+      const result = await res.json();
+      if(result.status === 'success') {
+        if (status === 'pending_received') {
+          btn.innerText = 'Connected';
+          btn.classList.replace('btn-primary-cc', 'btn-success');
+          btn.dataset.status = 'connected';
+          btn.disabled = true;
+        } else {
+          btn.innerText = 'Pending';
+          btn.classList.replace('btn-primary-cc', 'btn-secondary');
+          btn.dataset.status = 'pending_sent';
+          btn.disabled = true;
+        }
+      }
+    } catch(err) { console.error(err); }
+  });
+</script>
+{% endblock %}

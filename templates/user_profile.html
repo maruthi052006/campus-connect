@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · {{ profile_user.full_name|default:profile_user.username }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .profile-banner {
+    height: 180px;
+    background: linear-gradient(135deg, var(--primary) 0%, #004182 100%);
+    border-radius: 8px 8px 0 0;
+  }
+  .profile-avatar-large {
+    width: 150px;
+    height: 150px;
+    border: 5px solid white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background: white;
+  }
+  
+  @media (max-width: 767.98px) {
+    .profile-banner { height: 120px; }
+    .profile-avatar-large {
+        width: 120px;
+        height: 120px;
+        margin: -60px auto 0 !important;
+    }
+    .profile-header-info {
+        text-align: center;
+        padding: 15px !important;
+    }
+    .profile-stats {
+        justify-content: center;
+    }
+    .action-btns {
+        width: 100%;
+        justify-content: center;
+        margin-top: 15px;
+    }
+    .action-btns .btn {
+        flex: 1;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .profile-avatar-large {
+        margin-top: -75px;
+        margin-left: 20px;
+    }
+  }
+
+  .tag-badge {
+    background: var(--bg-main);
+    color: var(--text-secondary);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    display: inline-block;
+    margin: 4px;
+    border: 1px solid var(--border);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-card p-0 mb-4 overflow-hidden border-0 shadow-sm">
+  {% if profile.cover_photo %}
+    <div class="profile-banner" style="background: url('{{ profile.cover_photo.url }}') center/cover;"></div>
+  {% else %}
+    <div class="profile-banner"></div>
+  {% endif %}
+  
+  <div class="d-flex flex-column flex-md-row align-items-center align-items-md-end mb-3">
+    <div class="profile-avatar-large rounded-circle overflow-hidden">
+        <img src="{{ profile.get_avatar_url }}" class="w-100 h-100" style="object-fit:cover;">
+    </div>
+    <div class="flex-grow-1 profile-header-info w-100">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center align-items-md-center px-4 pt-md-4">
+        <div class="mb-3 mb-md-0">
+          <h2 class="fw-bold mb-0">{{ profile_user.full_name|default:profile_user.username }}</h2>
+          <p class="text-secondary mb-1">
+            {{ profile_user.role }} · {{ profile_user.department }} · Batch {{ profile_user.batch }}
+          </p>
+          <div class="small text-muted">🤝 {{ mutual_connections_count|default:0 }} mutual connections</div>
+        </div>
+        
+        <div class="action-btns d-flex gap-2">
+          <button class="btn btn-sm btn-connect {% if connection_status == 'connected' %}btn-success{% elif connection_status == 'pending_sent' %}btn-secondary{% else %}btn-primary-cc{% endif %}" 
+                  id="connectBtn" 
+                  data-user-id="{{ profile_user.id }}"
+                  data-status="{{ connection_status|default:'none' }}"
+                  {% if connection_status == 'connected' or connection_status == 'pending_sent' %}disabled{% endif %}>
+            {% if connection_status == 'connected' %}Connected ✓
+            {% elif connection_status == 'pending_sent' %}Pending
+            {% elif connection_status == 'pending_received' %}Accept Request
+            {% else %}Connect{% endif %}
+          </button>
+          
+          <button class="btn btn-sm follow-btn {% if is_following %}btn-primary-cc{% else %}btn-outline-cc{% endif %}" 
+                  id="followBtn" 
+                  data-user-id="{{ profile_user.id }}">
+            {% if is_following %}Following{% else %}Follow{% endif %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-4 pb-4">
+    <div class="d-flex gap-4 mt-3 profile-stats">
+      <div class="stat-item">
+        <span class="fw-bold fs-5">{{ connections_count|default:0 }}</span>
+        <span class="text-muted small">Connections</span>
+      </div>
+      <div class="stat-item">
+        <span class="fw-bold fs-5">{{ followers_count|default:0 }}</span>
+        <span class="text-muted small">Followers</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-8">
+    <!-- Bio / About -->
+    <div class="cc-card mb-4">
+      <h5 class="fw-bold mb-3">About</h5>
+      <p class="text-secondary">{{ profile.bio|default:"No bio provided yet." }}</p>
+    </div>
+
+    <!-- Skills -->
+    <div class="cc-card mb-4">
+      <h5 class="fw-bold mb-3">Skills</h5>
+      <div class="d-flex flex-wrap">
+        {% for user_skill in skills %}
+          <div class="tag-badge">{{ user_skill.skill.name }}</div>
+        {% empty %}
+          <p class="text-muted small">No skills tracked yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Toggle Section -->
+    <div class="cc-card p-0">
+      <ul class="nav nav-tabs nav-fill border-0">
+        <li class="nav-item">
+          <button class="nav-link active fw-bold py-3 border-0" data-bs-toggle="tab" data-bs-target="#tab-posts">POSTS</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link fw-bold py-3 border-0" data-bs-toggle="tab" data-bs-target="#tab-projects">PROJECTS</button>
+        </li>
+      </ul>
+      <div class="tab-content p-4">
+        <div class="tab-pane fade show active" id="tab-posts">
+          {% for post in posts %}
+            {% include 'includes/post_card.html' with post=post %}
+          {% empty %}
+            <p class="text-muted text-center py-4">No public posts yet.</p>
+          {% endfor %}
+        </div>
+        <div class="tab-pane fade" id="tab-projects">
+          {% for proj in projects %}
+            <div class="mb-3 p-3 border rounded">
+              <h6 class="fw-bold mb-1">{{ proj.title }}</h6>
+              <p class="text-muted small mb-0">{{ proj.description }}</p>
+            </div>
+          {% empty %}
+            <p class="text-muted text-center py-4">No projects listed yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="cc-card">
+      <h6 class="fw-bold mb-3">Department Highlights</h6>
+      <p class="small text-secondary">
+        {{ profile_user.full_name }} is a Top Contributor in {{ profile_user.department }} this month.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Follow Action
+  document.getElementById('followBtn')?.addEventListener('click', async (e) => {
+    const btn = e.target;
+    const userId = btn.dataset.userId;
+    btn.disabled = true;
+    try {
+      const res = await fetch("{% url 'connections:follow_toggle_ajax' %}", {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ user_id: userId })
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        if(data.following) {
+          btn.innerText = 'Following';
+          btn.classList.add('btn-primary-cc');
+          btn.classList.remove('btn-outline-cc');
+        } else {
+          btn.innerText = 'Follow';
+          btn.classList.remove('btn-primary-cc');
+          btn.classList.add('btn-outline-cc');
+        }
+        
+        // Update followers count in the DOM
+        const countSpan = document.querySelector('.stat-item:nth-child(2) .fs-5');
+        if (countSpan) {
+          countSpan.innerText = data.count;
+        }
+      }
+    } catch(err) { console.error(err); }
+    btn.disabled = false;
+  });
+
+  // Connect Action
+  document.getElementById('connectBtn')?.addEventListener('click', async (e) => {
+    const btn = e.target;
+    const status = btn.dataset.status;
+    const userId = btn.dataset.userId;
+    
+    if(status === 'connected' || status === 'pending_sent') return;
+
+    btn.disabled = true;
+    try {
+      const endpoint = status === 'pending_received' 
+        ? "{% url 'connections:accept_user_ajax' %}" 
+        : "{% url 'connections:send_connection_request_ajax' %}";
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ user_id: btn.dataset.userId })
+      });
+      const result = await res.json();
+      if(result.status === 'success') {
+        if (status === 'pending_received') {
+          btn.innerText = 'Connected';
+          btn.classList.replace('btn-primary-cc', 'btn-success');
+          btn.dataset.status = 'connected';
+        } else {
+          btn.innerText = 'Pending';
+          btn.classList.replace('btn-primary-cc', 'btn-secondary');
+          btn.dataset.status = 'pending_sent';
+        }
+      }
+    } catch(err) { console.error(err); }
+  });
+</script>
+{% endblock %}

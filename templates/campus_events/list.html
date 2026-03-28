@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Events{% endblock %}
+
+{% block extra_css %}
+<style>
+  .event-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .event-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    border-color: var(--primary);
+  }
+  .event-img {
+    height: 180px;
+    background: #f0f2f5;
+    position: relative;
+    overflow: hidden;
+  }
+  .event-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .category-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .event-content {
+    padding: 20px;
+    flex-grow: 1;
+  }
+  .event-date {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary);
+    font-weight: 700;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+  }
+  .event-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    color: #1a1a1a;
+  }
+  .event-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .event-meta i {
+    width: 20px;
+  }
+  .create-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1000;
+    padding: 15px 25px;
+    border-radius: 50px;
+    box-shadow: 0 8px 16px rgba(0,123,255,0.3);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-end mb-5">
+    <div>
+      <h2 class="fw-800 mb-2">Campus Events</h2>
+      <p class="text-muted mb-0">Discover hackathons, cultural fests, and workshops happening on campus.</p>
+    </div>
+    {% if can_manage %}
+    <button class="btn btn-primary-cc create-btn fw-bold" data-bs-toggle="modal" data-bs-target="#createEventModal">
+      <i class="bi bi-plus-lg me-2"></i> Post New Event
+    </button>
+    {% endif %}
+  </div>
+
+  <div class="row g-4">
+    {% for event in upcoming_events %}
+    <div class="col-md-6 col-lg-4">
+      <div class="event-card shadow-sm">
+        <div class="event-img">
+          {% if event.image %}
+          <img src="{{ event.image.url }}" alt="{{ event.title }}">
+          {% else %}
+          <div class="d-flex align-items-center justify-content-center h-100 text-muted opacity-50">
+            <i class="bi bi-calendar-event fs-1"></i>
+          </div>
+          {% endif %}
+          <span class="category-badge">{{ event.category }}</span>
+        </div>
+        <div class="event-content">
+          <div class="event-date">
+            <i class="bi bi-calendar3"></i>
+            {{ event.date|date:"l, M d • h:i A" }}
+          </div>
+          <h5 class="event-title">{{ event.title }}</h5>
+          <div class="event-meta mb-3">
+            <span><i class="bi bi-geo-alt text-primary"></i> {{ event.location }}</span>
+            <span><i class="bi bi-people text-primary"></i> {{ event.organizer }}</span>
+          </div>
+          <p class="text-muted small mb-0">{{ event.description|truncatechars:120 }}</p>
+        </div>
+        <div class="p-3 border-top bg-light-cc d-flex justify-content-between align-items-center">
+            <button class="btn btn-link btn-sm text-decoration-none fw-bold p-0">Learn More</button>
+            {% if can_manage %}
+            <button class="btn btn-outline-danger btn-sm border-0" onclick="deleteEvent({{ event.id }})">
+                <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12 py-5 text-center">
+      <div class="mb-4 text-muted opacity-25">
+        <i class="bi bi-calendar-x" style="font-size: 5rem;"></i>
+      </div>
+      <h4 class="text-muted">No upcoming events yet</h4>
+      <p class="text-secondary">Stay tuned for exciting campus activities!</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if past_events %}
+  <div class="mt-5 pt-5 border-top">
+    <h5 class="fw-bold mb-4">Past Events</h5>
+    <div class="row g-3">
+      {% for event in past_events %}
+      <div class="col-md-6 col-lg-3">
+        <div class="p-3 bg-white border rounded shadow-sm opacity-75">
+          <h6 class="fw-bold mb-1 text-truncate">{{ event.title }}</h6>
+          <small class="text-muted d-block mb-1">{{ event.date|date:"M d, Y" }}</small>
+          <span class="badge bg-light text-muted border" style="font-size: 0.65rem;">{{ event.category }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Create Event Modal -->
+<div class="modal fade" id="createEventModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-800">Post a Campus Event</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="createEventForm" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-bold text-muted text-uppercase">Event Title</label>
+              <input type="text" name="title" class="form-control" placeholder="e.g. Annual Tech Summit 2026" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted text-uppercase">Category</label>
+              <select name="category" class="form-select">
+                <option value="Hackathon">Hackathon</option>
+                <option value="Cultural">Cultural Fest</option>
+                <option value="Seminar">Seminar/Workshop</option>
+                <option value="Sports">Sports Event</option>
+                <option value="Placement">Placement Drive</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted text-uppercase">Organizer</label>
+                <input type="text" name="organizer" class="form-control" placeholder="Dept / Club Name" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted text-uppercase">Date & Time</label>
+              <input type="datetime-local" name="date" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted text-uppercase">Location</label>
+              <input type="text" name="location" class="form-control" placeholder="Hall / Ground name" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold text-muted text-uppercase">Description</label>
+              <textarea name="description" class="form-control" rows="4" placeholder="Tell us more about the event..." required></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold text-muted text-uppercase">Event Image (Optional)</label>
+              <input type="file" name="image" class="form-control" accept="image/*">
+            </div>
+            <div class="col-12 mt-4 text-end">
+              <button type="button" class="btn btn-light rounded-pill px-4 me-2" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary-cc rounded-pill px-5" id="submitBtn">Post Event</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('createEventForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerText = 'Posting...';
+
+    const formData = new FormData(e.target);
+
+    try {
+      const res = await fetch("{% url 'campus_events:event_create' %}", {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        showToast('Event published successfully!', 'success');
+        location.reload();
+      } else {
+        showToast(data.message, 'danger');
+      }
+    } catch(err) {
+      showToast('Error creating event', 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Post Event';
+    }
+  });
+
+  async function deleteEvent(id) {
+    if(!confirm('Are you sure you want to delete this event?')) return;
+    try {
+      const res = await fetch(`/events/delete/${id}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        showToast('Event deleted', 'info');
+        location.reload();
+      }
+    } catch(err) {
+      showToast('Error deleting event', 'danger');
+    }
+  }
+</script>
+{% endblock %}

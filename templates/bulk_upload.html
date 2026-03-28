@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Admin · Bulk Upload{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-sidebar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .admin-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .admin-nav-item:hover {
+    background: var(--bg-main);
+    color: var(--primary);
+  }
+  .admin-nav-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 48px;
+    text-align: center;
+    background: #fdfdfd;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-3">
+    <div class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom bg-light">
+        <h6 class="fw-bold mb-0 text-dark">Campus Admin</h6>
+        <small class="text-muted">Control Panel</small>
+      </div>
+      <div class="nav flex-column">
+        <a href="{% url 'admin_add_user' %}" class="admin-nav-item">
+          <i class="bi bi-person-plus"></i> Add User
+        </a>
+        <a href="{% url 'admin_bulk_upload' %}" class="admin-nav-item active">
+          <i class="bi bi-cloud-upload"></i> Bulk Upload
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-9">
+    <div class="cc-card shadow-sm">
+      <h4 class="fw-bold mb-3">Bulk User Import</h4>
+      <p class="text-muted mb-4">Upload a CSV file containing user details. Accounts will be created with default passwords.</p>
+      
+      <div class="drop-zone mb-4" id="dropZone" onclick="document.getElementById('csv_file').click()">
+        <i class="bi bi-file-earmark-arrow-up fs-1 text-primary mb-3"></i>
+        <h6 class="fw-bold">Drag & drop CSV file here</h6>
+        <p class="small text-muted">or click to browse from computer</p>
+        <form id="bulkForm" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="file" name="csv_file" id="csv_file" class="d-none" accept=".csv" onchange="handleFileSelect(this)">
+        </form>
+      </div>
+
+      <div id="fileInfo" class="d-none mb-4 p-3 border rounded bg-light d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-file-spreadsheet fs-3 text-success"></i>
+          <div>
+            <div id="fileName" class="fw-bold">filename.csv</div>
+            <div id="fileSize" class="small text-muted">0 KB</div>
+          </div>
+        </div>
+        <button class="btn btn-primary-cc rounded-pill px-4" id="uploadBtn">Process File</button>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mt-5">
+        <a href="{% url 'admin_sample_csv' %}" class="text-decoration-none small fw-bold">
+          <i class="bi bi-download me-1"></i> Download Template CSV
+        </a>
+      </div>
+
+      <div id="resultsTable" class="mt-5 d-none">
+        <h6 class="fw-bold mb-3">Import Summary</h6>
+        <div class="table-responsive">
+          <table class="table table-sm small">
+            <thead class="table-light">
+              <tr>
+                <th>Username</th>
+                <th>Status</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function handleFileSelect(input) {
+    if(input.files && input.files[0]) {
+      const file = input.files[0];
+      document.getElementById('fileName').innerText = file.name;
+      document.getElementById('fileSize').innerText = (file.size / 1024).toFixed(1) + ' KB';
+      document.getElementById('fileInfo').classList.remove('d-none');
+    }
+  }
+
+  document.getElementById('uploadBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('uploadBtn');
+    const form = document.getElementById('bulkForm');
+    const formData = new FormData(form);
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+
+    try {
+      const res = await fetch('{% url "admin_bulk_upload" %}', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        renderResults(data.results);
+      } else {
+        showToast(data.message, 'danger');
+      }
+    } catch(err) {
+      showToast('Upload failed', 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Process File';
+    }
+  });
+
+  function renderResults(results) {
+    const body = document.getElementById('resultsBody');
+    body.innerHTML = '';
+    results.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.username}</td>
+        <td><span class="badge ${r.status === 'Success' ? 'bg-success' : 'bg-danger'}">${r.status}</span></td>
+        <td>${r.message}</td>
+      `;
+      body.appendChild(tr);
+    });
+    document.getElementById('resultsTable').classList.remove('d-none');
+    showToast('Processing complete', 'info');
+  }
+</script>
+{% endblock %}

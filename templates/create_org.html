@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Create Organization{% endblock %}
+
+{% block extra_css %}
+<style>
+  .create-org-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+  }
+  .form-label-cc {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .preview-sticky {
+    position: sticky;
+    top: 80px;
+  }
+  .image-upload-wrapper {
+    width: 120px;
+    height: 120px;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .image-upload-wrapper:hover {
+    border-color: var(--primary);
+  }
+  .image-upload-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <div class="create-org-card shadow-sm">
+      <h3 class="fw-bold mb-4">Start an Organization</h3>
+      <p class="text-muted mb-4">Create a space for your club, project team, or startup to collaborate and grow within CampusConnect.</p>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row g-4">
+          <div class="col-12">
+            <label class="form-label-cc">Organization Name</label>
+            <input type="text" name="name" class="form-control form-control-lg" placeholder="e.g. AI/ML Engineering Core" required oninput="updatePreview('name', this.value)">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label-cc">Type</label>
+            <select name="type" class="form-select" onchange="updatePreview('type', this.value)">
+              <option value="Club">Club / Society</option>
+              <option value="Startup">Startup / Project</option>
+              <option value="Department">Academic Department</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label-cc">Domain</label>
+            <input type="text" name="domain" class="form-control" placeholder="e.g. Technology, Arts, Sports" oninput="updatePreview('domain', this.value)">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label-cc">Description</label>
+            <textarea name="description" class="form-control" rows="4" placeholder="What is this organization about?" oninput="updatePreview('desc', this.value)"></textarea>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label-cc">Logo</label>
+            <div class="d-flex align-items-center gap-3">
+              <label for="logoInput" class="image-upload-wrapper" id="logoPreviewWrapper">
+                <i class="bi bi-camera fs-2 text-muted"></i>
+                <input type="file" id="logoInput" name="logo" hidden accept="image/*" onchange="previewImage(this)">
+              </label>
+              <div class="small text-muted">A distinct logo helps your organization stand out in the directory.</div>
+            </div>
+          </div>
+
+          <div class="col-12 pt-3">
+            <button type="submit" class="btn btn-primary-cc w-100 py-3 rounded-pill fw-bold">Create Organization</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Live Preview -->
+  <div class="col-md-4">
+    <div class="preview-sticky">
+      <h6 class="text-muted fw-bold small text-uppercase mb-3">Live Preview</h6>
+      <div class="cc-card">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div id="previewLogo" class="avatar-placeholder" style="width:64px;height:64px;font-size:1.5rem;">?</div>
+          <div>
+            <h5 class="fw-bold mb-0" id="previewName">Your Org Name</h5>
+            <span class="badge bg-primary-light text-primary rounded-pill small" id="previewType">Club</span>
+          </div>
+        </div>
+        <div class="text-muted small mb-2"><i class="bi bi-globe me-1"></i> <span id="previewDomain">Domain</span></div>
+        <p class="small text-secondary mb-0" id="previewDesc">Organization description will appear here as you type...</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function updatePreview(field, val) {
+    const el = document.getElementById('preview' + field.charAt(0).toUpperCase() + field.slice(1));
+    if(!el) return;
+    
+    if(field === 'name') {
+      el.innerText = val || 'Your Org Name';
+      const logoEl = document.getElementById('previewLogo');
+      if(val && !logoEl.querySelector('img')) {
+        logoEl.innerText = val.charAt(0).toUpperCase();
+      }
+    } else {
+      el.innerText = val || (field === 'desc' ? 'Organization description will appear here...' : field);
+    }
+  }
+
+  function previewImage(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('logoPreviewWrapper').innerHTML = `<img src="${e.target.result}">`;
+        document.getElementById('previewLogo').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Notifications{% endblock %}
+
+{% block extra_css %}
+<style>
+  .notification-list {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .notification-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
+  }
+  .notification-item:hover {
+    background: var(--bg-main);
+  }
+  .notification-item.unread {
+    background: #f0f7ff;
+    border-left: 4px solid var(--primary);
+  }
+  .notif-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+  .notif-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--primary);
+    border-radius: 50%;
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-width-800 mx-auto">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">Notifications</h4>
+    <button class="btn btn-link btn-sm text-decoration-none" id="markAllReadBtn">Mark all as read</button>
+  </div>
+
+  <div class="notification-list shadow-sm">
+    {% if today or week or earlier %}
+      {% if today %}
+        <div class="px-3 py-2 bg-light border-bottom small fw-bold text-muted text-uppercase">Today</div>
+        {% for n in today %}
+          {% include 'partials/notification_item.html' with notif=n %}
+        {% endfor %}
+      {% endif %}
+
+      {% if week %}
+        <div class="px-3 py-2 bg-light border-bottom small fw-bold text-muted text-uppercase">This Week</div>
+        {% for n in week %}
+          {% include 'partials/notification_item.html' with notif=n %}
+        {% endfor %}
+      {% endif %}
+
+      {% if earlier %}
+        <div class="px-3 py-2 bg-light border-bottom small fw-bold text-muted text-uppercase">Earlier</div>
+        {% for n in earlier %}
+          {% include 'partials/notification_item.html' with notif=n %}
+        {% endfor %}
+      {% endif %}
+    {% else %}
+      <div class="text-center py-5">
+        <i class="bi bi-bell-slash fs-1 text-muted d-block mb-3"></i>
+        <p class="text-secondary mb-0">You're all caught up!</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('markAllReadBtn')?.addEventListener('click', async () => {
+    try {
+      const res = await fetch("{% url 'notifications:mark_all_read_ajax' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+      });
+      if(res.ok) location.reload();
+    } catch(err) { console.error(err); }
+  });
+
+  document.querySelectorAll('.notification-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const id = item.dataset.id;
+      if(item.classList.contains('unread')) {
+        try {
+          await fetch("{% url 'notifications:mark_read_ajax' %}", {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ notif_id: id })
+          });
+          item.classList.remove('unread');
+          item.querySelector('.notif-dot')?.remove();
+        } catch(err) { console.error(err); }
+      }
+      // Redirect if target_url exists
+      if(item.dataset.url) window.location.href = item.dataset.url;
+    });
+  });
+</script>
+{% endblock %}

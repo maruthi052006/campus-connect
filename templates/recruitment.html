@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load org_filters %}
+
+{% block title %}CampusConnect · Manage Recruitment{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-sidebar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .admin-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .admin-nav-item:hover {
+    background: var(--bg-main);
+    color: var(--primary);
+  }
+  .admin-nav-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .recruitment-post-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .tag-bubble {
+    font-size: 0.75rem;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    color: var(--primary);
+    margin-right: 6px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Admin Sidebar -->
+  <div class="col-md-3">
+    <div class="admin-sidebar shadow-sm mb-4">
+      <div class="p-3 border-bottom bg-light">
+        <h6 class="fw-bold mb-0 text-dark">Administrative Panel</h6>
+        <small class="text-muted">{{ organization.name }}</small>
+      </div>
+      <div class="nav flex-column">
+        <a href="{% url 'organizations:org_dashboard' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="{% url 'organizations:org_members' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-people"></i> Members
+        </a>
+        <a href="{% url 'organizations:org_requests' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-person-plus"></i> Join Requests
+        </a>
+        <a href="{% url 'organizations:org_posts' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-file-post"></i> Manage Posts
+        </a>
+        <a href="{% url 'organizations:org_recruitment' organization.slug %}" class="admin-nav-item active">
+          <i class="bi bi-briefcase"></i> Recruitment
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-9">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold mb-0">Recruitment Management</h4>
+      <button class="btn btn-primary-cc rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+        <i class="bi bi-plus-lg me-1"></i> Post New Role
+      </button>
+    </div>
+
+    <div id="recruitmentPosts">
+      {% for post in recruitment_posts %}
+        <div class="recruitment-post-card shadow-sm">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h5 class="fw-bold mb-1">{{ post.title }}</h5>
+              <div class="text-muted small">
+                Posted on {{ post.created_at|date:"M d, Y" }}
+                {% if post.deadline %} · Deadline: {{ post.deadline|date:"M d, Y" }}{% endif %}
+              </div>
+            </div>
+            <div class="dropdown">
+              <button class="btn btn-light btn-sm rounded-circle border" data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#">View Applications ({{ post.applications.count }})</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="#">Close Role</a></li>
+              </ul>
+            </div>
+          </div>
+          
+          <p class="text-secondary small mb-3">{{ post.description }}</p>
+          
+          <div class="mb-3 d-flex flex-wrap gap-1">
+            {% for skill in post.required_skills.all %}
+              <span class="tag-bubble">{{ skill.name }}</span>
+            {% endfor %}
+            {% if not post.required_skills.all and post.skills_required %}
+              {% for s in post.skills_required|split:"," %}
+                <span class="tag-bubble">{{ s }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
+          
+          <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+            <span class="text-primary small fw-bold">
+              <i class="bi bi-people me-1"></i> {{ post.applications.count }} Applicant{{ post.applications.count|pluralize }}
+            </span>
+            {% if is_admin or is_moderator %}
+              <a href="{% url 'recruitment:org_applications' organization.slug %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Review Applications</a>
+            {% else %}
+               {% if post.id in applied_ids %}
+                  <button class="btn btn-sm btn-light rounded-pill px-3" disabled>Applied</button>
+               {% else %}
+                  <button class="btn btn-sm btn-primary-cc rounded-pill px-3" onclick="applyToOrgRole({{ post.id }}, this)">Apply</button>
+               {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-center py-5 bg-white border rounded">
+          <i class="bi bi-briefcase fs-1 text-muted d-block mb-2"></i>
+          <p class="text-muted">No recruitment roles posted yet.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Create Role Modal -->
+<div class="modal fade" id="createRoleModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Post New Recruitment Role</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="createRoleForm">
+          <div class="mb-3">
+            <label class="small fw-bold text-muted mb-2">Role Title</label>
+            <input type="text" class="form-control" id="roleTitle" placeholder="e.g. Graphic Designer, Web Developer Intern">
+          </div>
+          <div class="mb-3">
+            <label class="small fw-bold text-muted mb-2">Description</label>
+            <textarea class="form-control" id="roleDesc" rows="4" placeholder="Responsibilities, perks, etc."></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="small fw-bold text-muted mb-2">Required Skills (Comma separated)</label>
+            <input type="text" class="form-control" id="roleSkills" placeholder="Python, Django, AWS">
+          </div>
+          <div class="mb-3">
+            <label class="small fw-bold text-muted mb-2">Deadline</label>
+            <input type="date" class="form-control" id="roleDeadline">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary-cc px-4" onclick="submitRole()">Post Role</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const submitRole = async () => {
+    const title = document.getElementById('roleTitle').value;
+    const description = document.getElementById('roleDesc').value;
+    const skills = document.getElementById('roleSkills').value;
+    const deadline = document.getElementById('roleDeadline').value;
+    
+    if(!title || !description) {
+      showToast('Title and Description are required', 'warning');
+      return;
+    }
+
+    try {
+      const res = await fetch("{% url 'organizations:org_create_recruitment' organization.slug %}", {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ title, description, skills_required: skills, deadline })
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        location.reload();
+      }
+    } catch(err) {
+      showToast('Failed to post role', 'danger');
+    }
+  };
+
+  const applyToOrgRole = async (postId, btn) => {
+    btn.disabled = true;
+    try {
+      // Note: We need to use a trick for the ID in the template URL or just build it.
+      // Since it's an AJAX call, we can use a placeholder and replace it.
+      const url = "{% url 'organizations:org_apply_recruitment' organization.slug 0 %}".replace('0', postId);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        showToast('Application submitted!', 'success');
+        btn.innerText = 'Applied';
+        btn.classList.replace('btn-primary-cc', 'btn-light');
+      } else {
+        btn.disabled = false;
+        showToast(data.message || 'Error applying', 'danger');
+      }
+    } catch(err) {
+      btn.disabled = false;
+      showToast('Connection error', 'danger');
+    }
+  };
+</script>
+{% endblock %}

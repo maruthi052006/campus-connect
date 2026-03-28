@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Join Requests{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-sidebar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .admin-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .admin-nav-item:hover {
+    background: var(--bg-main);
+    color: var(--primary);
+  }
+  .admin-nav-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .request-card-admin {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+  }
+  .request-card-admin:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Admin Sidebar -->
+  <div class="col-md-3">
+    <div class="admin-sidebar shadow-sm mb-4">
+      <div class="p-3 border-bottom bg-light">
+        <h6 class="fw-bold mb-0 text-dark">Administrative Panel</h6>
+        <small class="text-muted">{{ organization.name }}</small>
+      </div>
+      <div class="nav flex-column">
+        <a href="{% url 'organizations:org_dashboard' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="{% url 'organizations:org_members' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-people"></i> Members
+        </a>
+        <a href="{% url 'organizations:org_requests' organization.slug %}" class="admin-nav-item active">
+          <i class="bi bi-person-plus"></i> Join Requests
+        </a>
+        <a href="{% url 'organizations:org_posts' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-file-post"></i> Manage Posts
+        </a>
+        <a href="{% url 'organizations:org_recruitment' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-briefcase"></i> Recruitment
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-9">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold mb-0">Join Requests</h4>
+      <span class="badge bg-primary rounded-pill">{{ join_requests|length }} Pending</span>
+    </div>
+
+    <div id="requestsContainer">
+      {% for req in join_requests %}
+        <div class="request-card-admin shadow-sm" id="req-{{ req.id }}">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="d-flex gap-3 align-items-center">
+              {% include 'includes/user_info.html' with user_obj=req.user %}
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-success rounded-pill px-3" onclick="handleRequest({{ req.id }}, 'accept', '{{ req.user.full_name|escapejs }}')">
+                Accept
+              </button>
+              <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="handleRequest({{ req.id }}, 'reject', '{{ req.user.full_name|escapejs }}')">
+                Reject
+              </button>
+            </div>
+          </div>
+          {% if req.message %}
+            <div class="mt-3 p-3 bg-light rounded border-start border-primary border-4">
+              <i class="bi bi-chat-left-quote text-primary me-2"></i>
+              <span class="text-secondary small">"{{ req.message }}"</span>
+            </div>
+          {% endif %}
+          <div class="mt-2 text-muted small">
+            Requested {{ req.created_at|timesince }} ago
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-center py-5 bg-white border rounded">
+          <i class="bi bi-check-circle fs-1 text-success d-block mb-2"></i>
+          <p class="text-muted">No pending join requests.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const handleRequest = async (id, action, name) => {
+    const card = document.getElementById(`req-${id}`);
+    const url = action === 'accept' 
+      ? "{% url 'organizations:org_accept_join' organization.slug %}" 
+      : "{% url 'organizations:org_reject_join' organization.slug %}";
+    
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ request_id: id })
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(20px)';
+        setTimeout(() => {
+          card.remove();
+          if(document.querySelectorAll('.request-card-admin').length === 0) {
+            location.reload();
+          }
+        }, 300);
+        showToast(action === 'accept' ? `${name} joined!` : `Rejected ${name}`, 'success');
+      }
+    } catch(err) {
+      showToast('Action failed', 'danger');
+    }
+  };
+</script>
+{% endblock %}

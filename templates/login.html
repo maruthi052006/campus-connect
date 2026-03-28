@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>CampusConnect · Login</title>
+  <style>
+    /* ---------- LINKEDIN IDENTICAL DESIGN SYSTEM (core only) ---------- */
+    :root {
+      --primary: #0A66C2;
+      --primary-hover: #004182;
+      --primary-light: #EEF3F8;
+      --bg-main: #F3F2EE;
+      --bg-card: #FFFFFF;
+      --text-primary: #191919;
+      --text-secondary: #666666;
+      --text-muted: #999999;
+      --border: #E0DDD8;
+      --danger: #CC1016;
+      --success: #057642;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* ---------- CARD STYLES (LinkedIn elevated card) ---------- */
+    .login-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      max-width: 400px;
+      padding: 32px 28px;
+      transition: all 0.2s ease;
+    }
+
+    /* Logo + tagline */
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.3px;
+      margin-bottom: 6px;
+    }
+    .tagline {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    /* Form fields */
+    .input-group-custom {
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .input-label {
+      font-weight: 500;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      display: block;
+      color: var(--text-primary);
+    }
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: white;
+      transition: 0.15s ease;
+      font-family: inherit;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(10, 102, 194, 0.2);
+    }
+    /* Password wrapper with toggle icon */
+    .password-wrapper {
+      position: relative;
+    }
+    .password-wrapper .form-input {
+      padding-right: 42px;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .toggle-password:hover {
+      color: var(--primary);
+    }
+
+    /* Button: full-width, pill shape, LinkedIn primary */
+    .btn-login {
+      width: 100%;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+      margin-top: 8px;
+      margin-bottom: 20px;
+    }
+    .btn-login:hover {
+      background-color: var(--primary-hover);
+    }
+    .btn-login:active {
+      transform: scale(0.98);
+    }
+
+    /* Forgot password link */
+    .forgot-link {
+      text-align: center;
+      margin-top: 8px;
+    }
+    .forgot-link a {
+      color: var(--primary);
+      font-weight: 500;
+      font-size: 0.85rem;
+      text-decoration: none;
+    }
+    .forgot-link a:hover {
+      text-decoration: underline;
+    }
+
+    /* Footer institution name */
+    .institution-footer {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+
+    /* Responsive: on small screens, card fills width with comfortable padding */
+    @media (max-width: 480px) {
+      body {
+        padding: 12px;
+      }
+      .login-card {
+        padding: 24px 20px;
+        max-width: 100%;
+        border-radius: 16px;
+      }
+      .logo h1 {
+        font-size: 1.8rem;
+      }
+    }
+
+    /* simple demo toast (non-intrusive, matches LinkedIn-like notifications) */
+    .demo-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #191919;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .demo-toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <!-- Logo + Tagline -->
+  <div class="logo">
+    <h1>CampusConnect</h1>
+    <div class="tagline">Your Campus. Your Network.</div>
+  </div>
+
+  <!-- Django Messages and Form Errors -->
+  {% if messages %}
+    <div class="messages" style="margin-bottom: 20px;">
+      {% for message in messages %}
+        <div class="message {{ message.tags }}" style="padding: 10px; border-radius: 6px; background: var(--danger); color: white; text-align: center; font-size: 0.85rem;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% if form.errors %}
+    <div class="form-errors" style="margin-bottom: 20px; padding: 10px; border-radius: 6px; background: var(--danger); color: white; text-align: center; font-size: 0.85rem;">
+      <p>Invalid roll number or password.</p>
+    </div>
+  {% endif %}
+
+  <!-- Login Form -->
+  <form id="loginForm" action="{% url 'accounts:login' %}" method="POST">
+    {% csrf_token %}
+    <!-- Roll Number field -->
+    <div class="input-group-custom">
+      <label class="input-label" for="rollNumber">Roll Number</label>
+      <input type="text" id="rollNumber" name="username" class="form-input" placeholder="e.g., 2024CS101" required autocomplete="username">
+    </div>
+
+    <!-- Password field with show/hide toggle -->
+    <div class="input-group-custom">
+      <label class="input-label" for="password">Password</label>
+      <div class="password-wrapper">
+        <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+        <button type="button" class="toggle-password" id="togglePasswordBtn" aria-label="Show password">
+          👁️
+        </button>
+      </div>
+    </div>
+
+    <!-- Login Button -->
+    <button type="submit" class="btn-login" id="loginBtn">Sign in</button>
+
+    <!-- Forgot Password link -->
+    <div class="forgot-link">
+      <a href="#" id="forgotPasswordLink">Forgot password?</a>
+    </div>
+  </form>
+
+  <!-- Footer with institution name -->
+  <div class="institution-footer">
+    © 2025 CampusConnect · Indian Institute of Technology, Delhi
+  </div>
+</div>
+
+<!-- Simple toast message (demo feedback) -->
+<div id="demoToast" class="demo-toast">✨ Demo mode: login simulation</div>
+
+<script>
+  (function() {
+    // ----- Password show/hide toggle functionality -----
+    const passwordInput = document.getElementById('password');
+    const toggleBtn = document.getElementById('togglePasswordBtn');
+
+    if (toggleBtn && passwordInput) {
+      toggleBtn.addEventListener('click', function() {
+        // Toggle input type between 'password' and 'text'
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        // Change icon style for better UX (optional: eye-open / eye-closed)
+        if (type === 'text') {
+          toggleBtn.innerHTML = '🙈';   // hidden eye emoji when visible
+          toggleBtn.setAttribute('aria-label', 'Hide password');
+        } else {
+          toggleBtn.innerHTML = '👁️';
+          toggleBtn.setAttribute('aria-label', 'Show password');
+        }
+      });
+    }
+
+    // ----- Show toast utility -----
+    function showToastMessage(message, duration = 2500) {
+      const toastEl = document.getElementById('demoToast');
+      if (!toastEl) return;
+      toastEl.textContent = message;
+      toastEl.classList.add('show');
+      setTimeout(() => {
+        toastEl.classList.remove('show');
+        // reset to default message after fade out (optional)
+        setTimeout(() => {
+          if (toastEl.textContent === message) {
+            toastEl.textContent = '✨ Demo mode: login simulation';
+          }
+        }, 200);
+      }, duration);
+    }
+
+    // ----- Handle login form submission (AJAX style, no reload) -----
+    const loginForm = document.getElementById('loginForm');
+    const loginButton = document.getElementById('loginBtn');
+
+    if (loginForm) {
+      loginForm.addEventListener('submit', function(event) {
+        // Native submission is used. 
+        // Optional: show a loading state on the button
+        const rollNumber = document.getElementById('rollNumber').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!rollNumber || !password) {
+            return; // let browser native validation handle it, or showToastMessage
+        }
+
+        setTimeout(() => {
+            loginButton.innerText = 'Signing in...';
+            loginButton.style.opacity = '0.7';
+        }, 10);
+      });
+    }
+
+    // Forgot password link: show demo info toast
+    const forgotLink = document.getElementById('forgotPasswordLink');
+    if (forgotLink) {
+      forgotLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        showToastMessage('📧 Password reset link would be sent to your registered email.', 2500);
+      });
+    }
+
+    // Optional: Add keypress handling for enter key (already handled by form submit)
+  })();
+</script>
+</body>
+</html>

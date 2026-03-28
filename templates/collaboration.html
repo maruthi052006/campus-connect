@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Collaborations{% endblock %}
+
+{% block extra_css %}
+<style>
+  .collaboration-section {
+    margin-bottom: 32px;
+  }
+  .invite-card-cc {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: transform 0.2s;
+  }
+  .invite-card-cc:hover {
+    transform: translateY(-4px);
+  }
+  .collab-row-cc {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .avatar-stack-cc {
+    display: flex;
+    align-items: center;
+  }
+  .stack-item-cc {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid white;
+    margin-left: -10px;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .stack-item-cc:first-child {
+    margin-left: 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h3 class="fw-bold mb-0">Project Collaborations</h3>
+      <a href="{% url 'projects:projects' %}" class="btn btn-primary-cc rounded-pill px-4">
+        <i class="bi bi-plus-lg me-1"></i> Start New Project
+      </a>
+    </div>
+
+    <!-- Incoming Invitations -->
+    <div class="collaboration-section">
+      <h6 class="text-muted fw-bold small text-uppercase mb-3">Pending Invitations</h6>
+      <div class="row g-4">
+        {% for invite in pending_invites %}
+          <div class="col-md-6" id="invite-{{ invite.id }}">
+            <div class="invite-card-cc shadow-sm">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="avatar-placeholder" style="width:48px;height:48px;">
+                  {{ invite.project.title|slice:":1"|upper }}
+                </div>
+                <div>
+                  <h6 class="fw-bold mb-0">{{ invite.project.title }}</h6>
+                  <small class="text-muted">Invited by {{ invite.inviter.full_name }}</small>
+                </div>
+              </div>
+              <p class="small text-secondary mb-3">Role offered: <strong>{{ invite.role_offered }}</strong></p>
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-primary-cc flex-grow-1" onclick="handleInvite({{ invite.id }}, 'accept')">Accept</button>
+                <button class="btn btn-sm btn-outline-secondary flex-grow-1" onclick="handleInvite({{ invite.id }}, 'decline')">Decline</button>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="col-12">
+            <div class="text-center py-4 bg-white border rounded">
+              <p class="text-muted mb-0">No pending invitations.</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Active Collaborations -->
+    <div class="collaboration-section">
+      <h6 class="text-muted fw-bold small text-uppercase mb-3">Active Teams</h6>
+      <div id="activeList">
+        {% for collab in active_collaborations %}
+          <div class="collab-row-cc shadow-sm">
+            <div class="d-flex align-items-center gap-3">
+              <div class="avatar-placeholder" style="width:40px;height:40px;background:var(--primary-light);color:var(--primary);">
+                <i class="bi bi-layers"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0">{{ collab.project.title }}</h6>
+                <small class="text-muted">Owner: {{ collab.project.owner.full_name }}</small>
+              </div>
+            </div>
+
+            <div class="d-none d-md-block">
+              <span class="badge bg-light text-muted border fw-normal rounded-pill px-3">{{ collab.role }}</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-4">
+              <div class="avatar-stack-cc">
+                {% for member in collab.project.collaborators.all|slice:":3" %}
+                  <div class="stack-item-cc" title="{{ member.user.full_name }}">{{ member.user.full_name|slice:":1"|upper }}</div>
+                {% endfor %}
+                {% if collab.project.collaborators.count > 3 %}
+                  <div class="stack-item-cc bg-light text-muted">+{{ collab.project.collaborators.count|add:"-3" }}</div>
+                {% endif %}
+              </div>
+              <button class="btn btn-sm btn-outline-primary rounded-pill">View Board</button>
+            </div>
+          </div>
+        {% empty %}
+          <div class="text-center py-5 bg-white border rounded">
+            <i class="bi bi-people fs-1 text-muted d-block mb-2"></i>
+            <p class="text-muted">You haven't joined any projects yet.</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const handleInvite = async (inviteId, action) => {
+    try {
+      const res = await fetch(`{% url 'projects:handle_invite_ajax' %}`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ invite_id: inviteId, action: action })
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        showToast(data.message, 'success');
+        location.reload();
+      } else {
+        showToast(data.message || 'Error', 'danger');
+      }
+    } catch(err) {
+      showToast('Action failed', 'danger');
+    }
+  };
+</script>
+{% endblock %}

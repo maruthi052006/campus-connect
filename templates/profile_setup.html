@@ -1,0 +1,524 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Profile Setup{% endblock %}
+
+{% block extra_css %}
+  <style>
+    /* Hide sidebar and navbar for setup page */
+    .left-sidebar, #mainNavbar, .mobile-bottom-nav { display: none !important; }
+    .content-area { margin-left: 0 !important; padding-top: 20px !important; }
+    body { padding-top: 0 !important; }
+
+    /* Wizard Card */
+    .wizard-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      max-width: 620px;
+      margin: 40px auto;
+      overflow: hidden;
+    }
+
+    /* Step Indicator (LinkedIn style) */
+    .step-indicator {
+      display: flex;
+      justify-content: space-between;
+      padding: 24px 32px 0 32px;
+      border-bottom: 1px solid var(--border);
+    }
+    .step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      cursor: pointer;
+      padding-bottom: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .step .step-number {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      line-height: 28px;
+      border-radius: 50%;
+      background: #e9ecef;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      margin-right: 6px;
+      transition: all 0.2s;
+    }
+    .step.active .step-number {
+      background: var(--primary);
+      color: white;
+    }
+    .step.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .step.completed .step-number {
+      background: var(--success);
+      color: white;
+      content: "✓";
+    }
+    .step.completed .step-number::after {
+      content: "✓";
+      font-size: 12px;
+    }
+    .step.completed .step-number span {
+      display: none;
+    }
+    .step .step-label {
+      font-size: 13px;
+    }
+    @media (max-width: 500px) {
+      .step .step-label {
+        display: none;
+      }
+      .step-indicator {
+        padding: 20px 16px 0;
+      }
+    }
+
+    /* Step Container (transition fade) */
+    .steps-container {
+      position: relative;
+      padding: 24px 32px 32px;
+    }
+    .step-content {
+      transition: opacity 0.25s ease-in-out, visibility 0.25s;
+      opacity: 1;
+      visibility: visible;
+    }
+    .step-content.hidden-step {
+      display: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-label {
+      font-weight: 500;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      display: block;
+      color: var(--text-primary);
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: white;
+      font-family: inherit;
+      transition: 0.15s ease;
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(10, 102, 194, 0.2);
+    }
+    .form-textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    /* Profile Photo Upload */
+    .photo-upload {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .avatar-preview {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--border);
+      background: #f0f2f5;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .upload-area {
+      text-align: center;
+      font-size: 13px;
+      color: var(--primary);
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .upload-area:hover {
+      text-decoration: underline;
+    }
+    .drag-drop-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    #profilePhotoInput {
+      display: none;
+    }
+
+    /* Skill Tags */
+    .skill-input-container {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      background: white;
+      min-height: 48px;
+    }
+    .skill-badge {
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .skill-badge .remove-skill {
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      color: var(--text-secondary);
+      transition: color 0.1s;
+    }
+    .skill-badge .remove-skill:hover {
+      color: var(--danger);
+    }
+    .skill-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 6px 0;
+      font-size: 14px;
+      min-width: 100px;
+    }
+
+    /* Buttons */
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 28px;
+      gap: 12px;
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.15s;
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 24px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Demo Toast override */
+    .demo-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #191919;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .demo-toast.show {
+      opacity: 1;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-card">
+  <!-- Step Indicator -->
+  <div class="step-indicator">
+    <div class="step" data-step="0" id="step0Indicator">
+      <span class="step-number"><span>1</span></span>
+      <span class="step-label">Profile Info</span>
+    </div>
+    <div class="step" data-step="1" id="step1Indicator">
+      <span class="step-number"><span>2</span></span>
+      <span class="step-label">Academic & Role</span>
+    </div>
+    <div class="step" data-step="2" id="step2Indicator">
+      <span class="step-number"><span>3</span></span>
+      <span class="step-label">Skills & Links</span>
+    </div>
+  </div>
+
+  {% if form.errors %}
+    <div class="form-errors mt-3 px-4">
+      <div class="alert alert-danger py-2 small">
+        <ul class="mb-0">
+          {% for field in form %}
+            {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+
+  <form id="setupForm" action="{% url 'accounts:profile_setup' %}" method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="skills_data" id="skillsDataInput">
+    <div class="steps-container">
+      <!-- Step 1: Profile photo, display name, bio -->
+      <div id="step1" class="step-content">
+        <div class="photo-upload">
+          <img id="avatarPreview" class="avatar-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 24 24' fill='%23CCCCCC'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Profile preview">
+          <div class="upload-area" id="uploadTrigger">Upload photo</div>
+          <div class="drag-drop-hint">Drag & drop or click to choose</div>
+          <input type="file" id="profilePhotoInput" name="profile_picture" accept="image/*">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="displayName">Display name *</label>
+          <input type="text" id="displayName" name="full_name" class="form-input" placeholder="e.g., Priya Sharma" value="{{ request.user.full_name|default:'' }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="bio">Bio</label>
+          <textarea id="bio" name="bio" class="form-textarea" placeholder="Tell us about yourself...">{{ form.bio.value|default:'' }}</textarea>
+        </div>
+      </div>
+
+      <!-- Step 2: Department, Batch/Year, Role, Domain -->
+      <div id="step2" class="step-content hidden-step">
+        <div class="form-group">
+          <label class="form-label" for="department">Department *</label>
+          <select id="department" name="department" class="form-select">
+            <option value="">Select department</option>
+            <option {% if request.user.department == 'Artificial Intelligence & Data Science' %}selected{% endif %}>Artificial Intelligence & Data Science</option>
+            <option {% if request.user.department == 'Civil Engineering' %}selected{% endif %}>Civil Engineering</option>
+            <option {% if request.user.department == 'Computer Science & Engineering' %}selected{% endif %}>Computer Science & Engineering</option>
+            <option {% if request.user.department == 'Computer Science and Engineering (Artificial Intelligence & Machine Learning)' %}selected{% endif %}>Computer Science and Engineering (Artificial Intelligence & Machine Learning)</option>
+            <option {% if request.user.department == 'Computer Science and Engineering (Cyber Security)' %}selected{% endif %}>Computer Science and Engineering (Cyber Security)</option>
+            <option {% if request.user.department == 'Electrical & Electronics Engineering' %}selected{% endif %}>Electrical & Electronics Engineering</option>
+            <option {% if request.user.department == 'Electronics & Communication Engineering' %}selected{% endif %}>Electronics & Communication Engineering</option>
+            <option {% if request.user.department == 'Electronics Engineering (VLSI Design and Technology)' %}selected{% endif %}>Electronics Engineering (VLSI Design and Technology)</option>
+            <option {% if request.user.department == 'Information Technology' %}selected{% endif %}>Information Technology</option>
+            <option {% if request.user.department == 'Mechanical Engineering' %}selected{% endif %}>Mechanical Engineering</option>
+            <option {% if request.user.department == 'Mechatronics Engineering' %}selected{% endif %}>Mechatronics Engineering</option>
+            <option {% if request.user.department == 'Science & Humanities' %}selected{% endif %}>Science & Humanities</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="batch">Batch / Graduation Year *</label>
+          <select id="batch" name="batch" class="form-select">
+            <option value="">Select year</option>
+            <option {% if request.user.batch == '2024' %}selected{% endif %}>2024</option>
+            <option {% if request.user.batch == '2025' %}selected{% endif %}>2025</option>
+            <option {% if request.user.batch == '2026' %}selected{% endif %}>2026</option>
+            <option {% if request.user.batch == '2027' %}selected{% endif %}>2027</option>
+            <option {% if request.user.batch == '2028' %}selected{% endif %}>2028</option>
+            <option>Alumni</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Role *</label>
+          <div class="d-flex gap-4 mt-1">
+            <label class="small"><input type="radio" name="role" value="Student" {% if request.user.role == 'Student' or not request.user.role %}checked{% endif %}> Student</label>
+            <label class="small"><input type="radio" name="role" value="Teacher" {% if request.user.role == 'Teacher' %}checked{% endif %}> Teacher/Faculty</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="domainInterest">Domain of Interest *</label>
+          <select id="domainInterest" name="domain" class="form-select">
+            <option value="">Select primary domain</option>
+            <option {% if form.domain.value == 'AI / Machine Learning' %}selected{% endif %}>AI / Machine Learning</option>
+            <option {% if form.domain.value == 'Web Development' %}selected{% endif %}>Web Development</option>
+            <option {% if form.domain.value == 'Mobile Development' %}selected{% endif %}>Mobile Development</option>
+            <option {% if form.domain.value == 'Data Science' %}selected{% endif %}>Data Science</option>
+            <option {% if form.domain.value == 'Cloud Computing' %}selected{% endif %}>Cloud Computing</option>
+            <option {% if form.domain.value == 'UI/UX Design' %}selected{% endif %}>UI/UX Design</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Step 3: Skills + Links -->
+      <div id="step3" class="step-content hidden-step">
+        <div class="form-group">
+          <label class="form-label">Skills (press Enter to add)</label>
+          <div class="skill-input-container" id="skillsContainer">
+            <div id="skillsList" class="d-flex flex-wrap gap-2"></div>
+            <input type="text" id="skillInput" class="skill-input" placeholder="e.g., Python, React">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">LinkedIn Profile</label>
+          <input type="url" name="linkedin_url" class="form-input" placeholder="https://linkedin.com/..." value="{{ form.linkedin_url.value|default:'' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">GitHub Profile</label>
+          <input type="url" name="github_url" class="form-input" placeholder="https://github.com/..." value="{{ form.github_url.value|default:'' }}">
+        </div>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div class="nav-buttons">
+        <button type="button" id="backBtn" class="btn-secondary" disabled>Back</button>
+        <button type="button" id="nextBtn" class="btn-primary">Next</button>
+        <button type="submit" id="submitBtn" class="btn-primary" style="display: none;">Complete Setup</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div id="demoToast" class="demo-toast">✨ Setup your profile</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function() {
+    let currentStep = 0;
+    const totalSteps = 3;
+    const stepContents = [document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3')];
+    const stepIndicators = [document.getElementById('step0Indicator'), document.getElementById('step1Indicator'), document.getElementById('step2Indicator')];
+    const backBtn = document.getElementById('backBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    let skills = [];
+    const skillsListDiv = document.getElementById('skillsList');
+    const skillInput = document.getElementById('skillInput');
+
+    function renderSkills() {
+      skillsListDiv.innerHTML = '';
+      skills.forEach((skill, idx) => {
+        const badge = document.createElement('span');
+        badge.className = 'skill-badge';
+        badge.innerHTML = `${skill} <span class="remove-skill" data-index="${idx}">✕</span>`;
+        skillsListDiv.appendChild(badge);
+      });
+      document.querySelectorAll('.remove-skill').forEach(el => {
+        el.addEventListener('click', (e) => {
+          skills.splice(parseInt(el.dataset.index), 1);
+          renderSkills();
+          e.stopPropagation();
+        });
+      });
+    }
+
+    skillInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = skillInput.value.trim();
+        if(val && !skills.includes(val)) {
+          skills.push(val);
+          renderSkills();
+          skillInput.value = '';
+        }
+      }
+    });
+
+    // Photo Preview
+    const avatarPreview = document.getElementById('avatarPreview');
+    const photoInput = document.getElementById('profilePhotoInput');
+    document.getElementById('uploadTrigger').addEventListener('click', () => photoInput.click());
+    photoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if(file) {
+        const reader = new FileReader();
+        reader.onload = (re) => avatarPreview.src = re.target.result;
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function showStep(step) {
+      stepContents.forEach((c, idx) => c.classList.toggle('hidden-step', idx !== step));
+      stepIndicators.forEach((ind, idx) => {
+        ind.classList.toggle('active', idx === step);
+        ind.classList.toggle('completed', idx < step);
+      });
+      nextBtn.style.display = (step === totalSteps - 1) ? 'none' : 'inline-block';
+      submitBtn.style.display = (step === totalSteps - 1) ? 'inline-block' : 'none';
+      backBtn.disabled = (step === 0);
+    }
+
+    nextBtn.addEventListener('click', () => {
+      if(currentStep === 0 && !document.getElementById('displayName').value.trim()) {
+        showToast("Please enter your name");
+        return;
+      }
+      if(currentStep === 1) {
+        if(!document.getElementById('department').value || !document.getElementById('batch').value || !document.getElementById('domainInterest').value) {
+          showToast("Please fill academic details");
+          return;
+        }
+      }
+      if(currentStep < totalSteps - 1) { currentStep++; showStep(currentStep); }
+    });
+    backBtn.addEventListener('click', () => { if(currentStep > 0) { currentStep--; showStep(currentStep); } });
+
+    document.getElementById('setupForm').addEventListener('submit', () => {
+      document.getElementById('skillsDataInput').value = JSON.stringify(skills);
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Saving...';
+    });
+
+    function showToast(msg) {
+      const t = document.getElementById('demoToast');
+      t.innerText = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+    showStep(0);
+  })();
+</script>
+{% endblock %};
+</script>
+</body>
+</html>

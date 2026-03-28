@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>CampusConnect · Secure Your Account</title>
+  <style>
+    /* ---------- LINKEDIN IDENTICAL DESIGN SYSTEM (core) ---------- */
+    :root {
+      --primary: #0A66C2;
+      --primary-hover: #004182;
+      --primary-light: #EEF3F8;
+      --bg-main: #F3F2EE;
+      --bg-card: #FFFFFF;
+      --text-primary: #191919;
+      --text-secondary: #666666;
+      --text-muted: #999999;
+      --border: #E0DDD8;
+      --danger: #CC1016;
+      --success: #057642;
+      --weak-red: #CC1016;
+      --medium-orange: #E68A2E;
+      --strong-green: #057642;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* Centered card */
+    .reset-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      max-width: 440px;
+      padding: 32px 28px;
+      transition: all 0.2s ease;
+    }
+
+    /* Logo & heading */
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
+    }
+    .title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .sub {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-bottom: 24px;
+    }
+
+    /* Form field groups */
+    .input-group-custom {
+      margin-bottom: 20px;
+    }
+    .input-label {
+      font-weight: 500;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      display: block;
+      color: var(--text-primary);
+    }
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: white;
+      transition: 0.15s ease;
+      font-family: inherit;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(10, 102, 194, 0.2);
+    }
+    /* Password wrapper with toggle */
+    .password-wrapper {
+      position: relative;
+    }
+    .password-wrapper .form-input {
+      padding-right: 42px;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .toggle-password:hover {
+      color: var(--primary);
+    }
+
+    /* Password strength bar */
+    .strength-container {
+      margin-top: 6px;
+    }
+    .strength-bar-bg {
+      background-color: #e9ecef;
+      border-radius: 4px;
+      height: 6px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .strength-bar {
+      height: 100%;
+      width: 0%;
+      transition: width 0.2s ease, background-color 0.2s ease;
+      border-radius: 4px;
+    }
+    .strength-text {
+      font-size: 0.7rem;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+    .weak { color: var(--weak-red); }
+    .medium { color: var(--medium-orange); }
+    .strong { color: var(--strong-green); }
+
+    /* Match message */
+    .match-message {
+      font-size: 0.75rem;
+      margin-top: 4px;
+      min-height: 18px;
+    }
+    .match-error {
+      color: var(--danger);
+    }
+    .match-success {
+      color: var(--success);
+    }
+
+    /* Submit button */
+    .btn-submit {
+      width: 100%;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    .btn-submit:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Footer info */
+    .footer-note {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      padding-top: 18px;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      body {
+        padding: 12px;
+      }
+      .reset-card {
+        padding: 24px 20px;
+        max-width: 100%;
+        border-radius: 16px;
+      }
+      .logo h1 {
+        font-size: 1.6rem;
+      }
+      .title {
+        font-size: 1.2rem;
+      }
+    }
+
+    /* Toast message (non-intrusive) */
+    .demo-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #191919;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .demo-toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div class="reset-card">
+  <!-- CampusConnect logo -->
+  <div class="logo">
+    <h1>CampusConnect</h1>
+  </div>
+  <div class="title">Secure Your Account</div>
+  <div class="sub">Set a strong password to continue</div>
+
+  {% if messages %}
+    <div class="messages" style="margin-bottom: 20px;">
+      {% for message in messages %}
+        <div class="message {{ message.tags }}" style="padding: 10px; border-radius: 6px; background: var(--danger); color: white; text-align: center; font-size: 0.85rem;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% if form.errors %}
+    <div class="form-errors" style="margin-bottom: 20px; padding: 10px; border-radius: 6px; background: var(--danger); color: white; text-align: center; font-size: 0.85rem;">
+      <ul style="margin: 0; padding-left: 20px;">
+      {% for field in form %}
+        {% for error in field.errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+      {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form id="resetForm" action="{% url 'accounts:force_password_change' %}" method="POST">
+    {% csrf_token %}
+    <!-- New Password field -->
+    <div class="input-group-custom">
+      <label class="input-label" for="newPassword">New Password</label>
+      <div class="password-wrapper">
+        <input type="password" id="newPassword" name="new_password1" class="form-input" placeholder="Create a strong password" autocomplete="new-password" required>
+        <button type="button" class="toggle-password" data-target="newPassword" aria-label="Show password">
+          👁️
+        </button>
+      </div>
+      <!-- Strength bar area -->
+      <div class="strength-container">
+        <div class="strength-bar-bg">
+          <div class="strength-bar" id="strengthBar"></div>
+        </div>
+        <div class="strength-text" id="strengthText"></div>
+      </div>
+    </div>
+
+    <!-- Confirm Password field -->
+    <div class="input-group-custom">
+      <label class="input-label" for="confirmPassword">Confirm Password</label>
+      <div class="password-wrapper">
+        <input type="password" id="confirmPassword" name="new_password2" class="form-input" placeholder="Confirm your password" autocomplete="off" required>
+        <button type="button" class="toggle-password" data-target="confirmPassword" aria-label="Show password">
+          👁️
+        </button>
+      </div>
+      <div class="match-message" id="matchMessage"></div>
+    </div>
+
+    <!-- Submit button (disabled until valid) -->
+    <button type="submit" class="btn-submit" id="submitBtn" disabled>Update Password</button>
+  </form>
+
+  <div class="footer-note">
+    Your password must be at least 8 characters with a mix of letters, numbers, and symbols.
+  </div>
+</div>
+
+<!-- Toast for feedback -->
+<div id="demoToast" class="demo-toast">🔒 Password must meet requirements</div>
+
+<script>
+  (function() {
+    // DOM elements
+    const newPasswordInput = document.getElementById('newPassword');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+    const matchMessageDiv = document.getElementById('matchMessage');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetForm = document.getElementById('resetForm');
+
+    // Helper: show toast message
+    function showToastMessage(message, duration = 2500) {
+      const toastEl = document.getElementById('demoToast');
+      if (!toastEl) return;
+      toastEl.textContent = message;
+      toastEl.classList.add('show');
+      setTimeout(() => {
+        toastEl.classList.remove('show');
+        setTimeout(() => {
+          if (toastEl.textContent === message) {
+            toastEl.textContent = '🔒 Password must meet requirements';
+          }
+        }, 200);
+      }, duration);
+    }
+
+    // Password strength evaluator (returns score 0-3, text, color class, width)
+    function evaluateStrength(password) {
+      if (!password) return { score: 0, text: '', width: '0%', colorClass: '' };
+      let score = 0;
+      // length
+      if (password.length >= 8) score++;
+      else if (password.length >= 6) score += 0.5;
+      // contains digit
+      if (/\d/.test(password)) score++;
+      // contains lowercase
+      if (/[a-z]/.test(password)) score++;
+      // contains uppercase
+      if (/[A-Z]/.test(password)) score++;
+      // contains special char
+      if (/[^a-zA-Z0-9]/.test(password)) score++;
+      
+      // Normalize score to max 4 (we'll map to weak/medium/strong)
+      let normalized = Math.min(score, 4);
+      if (normalized <= 1.5) {
+        return { score: normalized, text: 'Weak', width: '33%', color: 'var(--weak-red)', barColor: '#CC1016' };
+      } else if (normalized <= 2.5) {
+        return { score: normalized, text: 'Medium', width: '66%', color: 'var(--medium-orange)', barColor: '#E68A2E' };
+      } else {
+        return { score: normalized, text: 'Strong', width: '100%', color: 'var(--strong-green)', barColor: '#057642' };
+      }
+    }
+
+    // Update strength bar and text in real-time
+    function updateStrength() {
+      const password = newPasswordInput.value;
+      const strength = evaluateStrength(password);
+      strengthBar.style.width = strength.width;
+      strengthBar.style.backgroundColor = strength.barColor;
+      if (password === "") {
+        strengthText.innerHTML = '';
+        strengthBar.style.width = '0%';
+      } else {
+        strengthText.innerHTML = `<span class="${strength.text.toLowerCase()}">${strength.text}</span>`;
+      }
+      // trigger overall validation
+      validateForm();
+    }
+
+    // Real-time confirm match validation
+    function validateMatch() {
+      const newPwd = newPasswordInput.value;
+      const confirmPwd = confirmPasswordInput.value;
+      if (!confirmPwd) {
+        matchMessageDiv.innerHTML = '';
+        return false;
+      }
+      if (newPwd === confirmPwd) {
+        matchMessageDiv.innerHTML = '<span class="match-success">✓ Passwords match</span>';
+        return true;
+      } else {
+        matchMessageDiv.innerHTML = '<span class="match-error">✗ Passwords do not match</span>';
+        return false;
+      }
+    }
+
+    // Combined form validation: password strength must be at least "Medium" (score >= 2) and match
+    function isFormValid() {
+      const password = newPasswordInput.value;
+      const strength = evaluateStrength(password);
+      const isStrongEnough = strength.score >= 2; // Medium or Strong
+      const isMatch = (newPasswordInput.value === confirmPasswordInput.value && confirmPasswordInput.value !== "");
+      const hasPassword = password.length > 0;
+      // Also require length at least 6? but strength already covers
+      return isStrongEnough && isMatch && hasPassword;
+    }
+
+    function validateForm() {
+      const valid = isFormValid();
+      submitBtn.disabled = !valid;
+      return valid;
+    }
+
+    // Event listeners for live updates
+    newPasswordInput.addEventListener('input', () => {
+      updateStrength();
+      validateMatch();
+      validateForm();
+    });
+    confirmPasswordInput.addEventListener('input', () => {
+      validateMatch();
+      validateForm();
+    });
+
+    // Toggle password visibility for both fields
+    const toggleButtons = document.querySelectorAll('.toggle-password');
+    toggleButtons.forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        const targetId = this.getAttribute('data-target');
+        const input = document.getElementById(targetId);
+        if (input) {
+          const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+          input.setAttribute('type', type);
+          // Change emoji for better UX
+          if (type === 'text') {
+            this.innerHTML = '🙈';
+            this.setAttribute('aria-label', 'Hide password');
+          } else {
+            this.innerHTML = '👁️';
+            this.setAttribute('aria-label', 'Show password');
+          }
+        }
+      });
+    });
+
+    // Handle form submission natively
+    resetForm.addEventListener('submit', function(event) {
+      if (!isFormValid()) {
+        event.preventDefault();
+        showToastMessage('❌ Please ensure password is strong and matches', 2000);
+        return;
+      }
+      
+      const submitButton = submitBtn;
+      setTimeout(() => {
+        submitButton.disabled = true;
+        submitButton.innerText = 'Updating...';
+        submitButton.style.opacity = '0.7';
+      }, 10);
+    });
+
+    // initial check to keep button disabled
+    updateStrength();
+    validateMatch();
+    validateForm();
+  })();
+</script>
+</body>
+</html>

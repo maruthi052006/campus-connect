@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <!-- Stats Hierarchy -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+      <div class="cc-card h-100 p-3">
+        <div class="text-muted small fw-600 mb-1">PROFILE VIEWS</div>
+        <div class="fs-3 fw-bold">{{ profile_views|default:0 }}</div>
+        <div class="small text-success mt-1"><i class="bi bi-arrow-up"></i> +{{ weekly_views|default:0 }} this week</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="cc-card h-100 p-3">
+        <div class="text-muted small fw-600 mb-1">CONNECTIONS</div>
+        <div class="fs-3 fw-bold">{{ total_connections|default:0 }}</div>
+        <div class="small text-success mt-1"><i class="bi bi-people"></i> Active Network</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="cc-card h-100 p-3">
+        <div class="text-muted small fw-600 mb-1">POST IMPRESSIONS</div>
+        <div class="fs-3 fw-bold">{{ post_impressions|default:0 }}</div>
+        <div class="small text-primary mt-1">Total Reach</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="cc-card h-100 p-3">
+        <div class="text-muted small fw-600 mb-1">SKILL EXCHANGES</div>
+        <div class="fs-3 fw-bold">{{ skill_exchanges_completed|default:0 }}</div>
+        <div class="small text-warning mt-1"><i class="bi bi-award"></i> Completed</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Chart Section -->
+    <div class="col-lg-8">
+      <div class="cc-card">
+        <h6 class="fw-bold mb-4">Engagement Analytics</h6>
+        <div style="height: 300px;">
+          <canvas id="viewsChart"></canvas>
+        </div>
+      </div>
+
+      <div class="cc-card mt-3">
+        <h6 class="fw-bold mb-3">Recent Activity</h6>
+        <div class="activity-timeline">
+          {% for activity in recent_activities %}
+            <div class="activity-item d-flex gap-3 mb-3 pb-3 border-bottom">
+              <div class="activity-icon bg-light rounded-circle d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                {% if activity.notif_type == 'like' %}👍
+                {% elif activity.notif_type == 'comment' %}💬
+                {% elif activity.notif_type == 'follow' %}👤
+                {% elif activity.notif_type == 'connect_request' %}🔗
+                {% else %}🔔{% endif %}
+              </div>
+              <div>
+                <div class="text-dark small">{{ activity.message|safe }}</div>
+                <div class="text-muted" style="font-size: 0.7rem;">{{ activity.created_at|timesince }} ago</div>
+              </div>
+            </div>
+          {% empty %}
+            <p class="text-muted small">No recent activity detected.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills & Insights -->
+    <div class="col-lg-4">
+      <div class="cc-card">
+        <h6 class="fw-bold mb-3">Top Endorsed Skills</h6>
+        {% for skill in top_skills %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between small mb-1">
+              <span>{{ skill.skill__name }}</span>
+              <span class="text-muted">{{ skill.total_endorsements }}</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar bg-primary" role="progressbar" style="width: {{ skill.percentage|default:50 }}%"></div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="text-center py-3 text-muted small">No skills tracked yet.</div>
+        {% endfor %}
+        <hr>
+        <div class="text-center">
+          <a href="{% url 'accounts:my_profile' %}" class="btn btn-link btn-sm text-decoration-none">Manage Skills</a>
+        </div>
+      </div>
+
+      <div class="cc-card mt-3 bg-primary text-white">
+        <h6>Career Progress</h6>
+        <p class="small opacity-75">You are in the top 15% of {{ request.user.department }} students this month.</p>
+        <button class="btn btn-light btn-sm w-100 fw-600">View Rankings</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('viewsChart').getContext('2d');
+  const labels = {{ chart_labels|safe|default:"[]" }};
+  const data = {{ chart_data|safe|default:"[]" }};
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Profile Views',
+        data: data,
+        borderColor: '#0A66C2',
+        backgroundColor: 'rgba(10, 102, 194, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#F3F2EE' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% for u in users %}
+  <div class="user-item">
+    {% include 'includes/user_card.html' with u=u %}
+  </div>
+{% empty %}
+<div class="col-12 text-center py-5">
+  <i class="bi bi-person-slash fs-1 text-muted"></i>
+  <p class="mt-2 text-secondary">No matching students found...</p>
+</div>
+{% endfor %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Saved Items{% endblock %}
+
+{% block extra_css %}
+<style>
+  .saved-header {
+    background: white;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 24px;
+  }
+  .empty-saved {
+    text-align: center;
+    padding: 80px 20px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-width-700 mx-auto">
+  <div class="saved-header shadow-sm">
+    <div class="d-flex align-items-center gap-3">
+      <div class="avatar-placeholder bg-primary text-white" style="width:48px; height:48px;">
+        <i class="bi bi-bookmark-fill"></i>
+      </div>
+      <div>
+        <h4 class="fw-bold mb-0">Saved Items</h4>
+        <p class="text-secondary small mb-0">{{ saved_posts.count }} items bookmarked for later</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="saved-list">
+    {% for saved in saved_posts %}
+      {% include 'includes/post_card.html' with post=saved.post %}
+    {% empty %}
+      <div class="empty-saved">
+        <i class="bi bi-bookmark fs-1 text-muted d-block mb-3"></i>
+        <h5 class="fw-bold">No saved items yet</h5>
+        <p class="text-secondary">Click the bookmark icon on any post to save it for later.</p>
+        <a href="{% url 'feed:home' %}" class="btn-primary-cc text-decoration-none mt-2">Go to Feed</a>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // On the saved page, we might want to remove the card when unsaved
+  document.addEventListener('click', async (e) => {
+    const saveBtn = e.target.closest('.save-post-btn');
+    if (saveBtn && window.location.pathname.includes('/saved/')) {
+       // Wait for the global handler in main.js to finish (or we could handle it here)
+       // For now, simple reload or just let it be. 
+       // Actually, main.js handles the toggle. We can just check if it's still saved.
+       setTimeout(() => {
+         if (!saveBtn.classList.contains('text-primary')) {
+            const card = saveBtn.closest('.post-card');
+            if (card) {
+                card.style.opacity = '0.5';
+                card.style.transition = 'opacity 0.3s';
+                setTimeout(() => card.remove(), 300);
+            }
+         }
+       }, 500);
+    }
+  });
+</script>
+{% endblock %}

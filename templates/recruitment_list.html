@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Recruitment{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+  <div class="col-md-8">
+    <h3 class="fw-bold mb-1">Recruitment</h3>
+    <p class="text-secondary">Explore career and internship opportunities from campus organizations.</p>
+  </div>
+  {% if can_post_recruitment %}
+  <div class="col-md-4 text-md-end">
+    <a href="{% url 'recruitment:my_applications' %}" class="btn btn-link text-decoration-none me-2">My Applications</a>
+    <a href="{% url 'recruitment:create_recruitment' %}" class="btn btn-primary-cc rounded-pill px-4 shadow-sm">
+      <i class="bi bi-plus-lg me-1"></i> Post New Role
+    </a>
+  </div>
+  {% else %}
+  <div class="col-md-4 text-md-end">
+    <a href="{% url 'recruitment:my_applications' %}" class="btn btn-outline-cc rounded-pill px-4">
+      My Applications
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  {% for post in posts %}
+    <div class="col-md-6">
+      <div class="cc-card shadow-sm h-100">
+        <div class="d-flex gap-3 mb-3">
+          <div class="avatar-placeholder bg-light text-primary rounded" style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-weight:bold;">
+            {% if post.organization.logo %}
+              <img src="{{ post.organization.logo.url }}" class="w-100 h-100 object-fit-cover rounded">
+            {% else %}
+              {{ post.organization.name|slice:":1"|upper }}
+            {% endif %}
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">{{ post.title }}</h5>
+            <small class="text-primary fw-bold">{{ post.organization.name }}</small>
+          </div>
+        </div>
+        
+        <p class="text-secondary small mb-3">{{ post.description|truncatechars:180 }}</p>
+        
+        <div class="mb-3">
+          {% for skill in post.required_skills.all %}
+            <span class="badge bg-light text-primary border rounded-pill fw-normal me-1">{{ skill.name }}</span>
+          {% endfor %}
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
+          <span class="small text-muted">
+            <i class="bi bi-clock me-1"></i> Posted {{ post.created_at|timesince }} ago
+          </span>
+          <button class="btn btn-sm btn-primary-cc rounded-pill px-4" onclick="applyToRole({{ post.id }}, this)">
+            Apply Now
+          </button>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12 text-center py-5">
+      <i class="bi bi-briefcase fs-1 text-muted d-block mb-2"></i>
+      <p class="text-muted">No open recruitment posts at the moment. Check back later!</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const applyToRole = async (postId, btn) => {
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/recruitment/${postId}/apply/`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      });
+      const data = await res.json();
+      if(data.status === 'success' || data.status === 'info') {
+        showToast(data.message, data.status === 'success' ? 'success' : 'info');
+        btn.innerText = 'Applied';
+        btn.classList.replace('btn-primary-cc', 'btn-light');
+      } else {
+        btn.disabled = false;
+        showToast(data.message || 'Error applying', 'danger');
+      }
+    } catch(err) {
+      btn.disabled = false;
+      showToast('Connection error', 'danger');
+    }
+  };
+</script>
+{% endblock %}

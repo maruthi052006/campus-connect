@@ -1,0 +1,387 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Edit Profile{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Prevent horizontal overflow ── */
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .edit-profile-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .form-label-cc {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .photo-preview-wrapper {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--border);
+    background: var(--primary-light);
+    margin-bottom: 16px;
+  }
+  .photo-preview-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .skill-badge-cc {
+    background: var(--primary-light);
+    color: var(--primary);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .skill-badge-cc i {
+    cursor: pointer;
+    font-size: 0.75rem;
+  }
+  .skill-badge-cc i:hover {
+    color: var(--danger);
+  }
+
+  /* ── Cover preview ── */
+  #coverPreview {
+    height: 120px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    background-color: #eee;
+    background-position: center;
+    background-size: cover;
+  }
+
+  /* ────────────────────────────
+     RESPONSIVE BREAKPOINTS
+  ──────────────────────────── */
+
+  /* Tablet */
+  @media (max-width: 767.98px) {
+    .edit-profile-card {
+      padding: 20px;
+      border-radius: 8px;
+    }
+
+    /* Social links: 1 per row on tablet */
+    .social-links-row .col-md-4 {
+      width: 100%;
+    }
+  }
+
+  /* Mobile */
+  @media (max-width: 575.98px) {
+    .edit-profile-card {
+      padding: 16px;
+    }
+
+    /* Header row: stack title and button */
+    .edit-header {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 10px;
+    }
+    .edit-header a {
+      align-self: flex-start;
+    }
+
+    /* Photo section: stack avatar above cover */
+    .photo-section-avatar {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .photo-section-avatar .photo-preview-wrapper {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+    .photo-section-avatar .photo-label-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    /* Cover takes full width below avatar section */
+    .photo-section-cover {
+      width: 100%;
+    }
+    #coverPreview {
+      height: 90px;
+    }
+
+    /* Full-width columns on mobile */
+    .col-md-6 {
+      width: 100% !important;
+    }
+
+    /* Skill input: stack button below input */
+    .skill-input-group {
+      flex-direction: column !important;
+    }
+    .skill-input-group .form-control {
+      border-radius: 6px !important;
+      margin-bottom: 8px;
+    }
+    .skill-input-group .btn {
+      border-radius: 6px !important;
+      width: 100%;
+    }
+
+    /* Social links: 1 per row */
+    .social-links-row > div {
+      width: 100% !important;
+    }
+
+    /* Save button */
+    .save-btn {
+      font-size: 0.95rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-9">
+    <div class="edit-profile-card shadow-sm">
+
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4 edit-header">
+        <h4 class="fw-bold mb-0">Edit Profile</h4>
+        <a href="{% url 'accounts:my_profile' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">View Profile</a>
+      </div>
+
+      <form method="post" enctype="multipart/form-data" id="editProfileForm">
+        {% csrf_token %}
+        <input type="hidden" name="skills_data" id="skillsDataInput">
+
+        <!-- ── Photo Section ── -->
+        <div class="mb-5">
+          <!-- On mobile: avatar row (inline) -->
+          <div class="d-flex d-md-none photo-section-avatar">
+            <div class="photo-preview-wrapper">
+              <img id="avatarPreview"
+                   src="{% if form.instance.profile_picture %}{{ form.instance.profile_picture.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}"
+                   alt="Avatar">
+            </div>
+            <div class="photo-label-btn">
+              <label class="form-label-cc mb-0">Profile Photo</label>
+              <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                      onclick="document.getElementById('id_profile_picture').click()">Change Photo</button>
+            </div>
+          </div>
+
+          <!-- On desktop: original two-column layout -->
+          <div class="row d-none d-md-flex">
+            <div class="col-md-4 text-center">
+              <label class="form-label-cc">Profile Photo</label>
+              <div class="photo-preview-wrapper mx-auto">
+                <img id="avatarPreviewDesktop"
+                     src="{% if form.instance.profile_picture %}{{ form.instance.profile_picture.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}"
+                     alt="Avatar">
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                      onclick="document.getElementById('id_profile_picture').click()">Change Photo</button>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label-cc">Cover Photo</label>
+              <div id="coverPreviewDesktop"
+                   style="background-image: url('{% if form.instance.cover_photo %}{{ form.instance.cover_photo.url }}{% endif %}');"
+                   class="mb-3" id="coverPreview"></div>
+              <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                      onclick="document.getElementById('id_cover_photo').click()">Change Cover</button>
+            </div>
+          </div>
+
+          <!-- Mobile cover (below avatar row) -->
+          <div class="d-md-none photo-section-cover mt-3">
+            <label class="form-label-cc">Cover Photo</label>
+            <div id="coverPreview"
+                 style="background-image: url('{% if form.instance.cover_photo %}{{ form.instance.cover_photo.url }}{% endif %}');"></div>
+            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                    onclick="document.getElementById('id_cover_photo').click()">Change Cover</button>
+          </div>
+
+          <!-- Hidden file inputs -->
+          <div class="d-none">{{ form.profile_picture }}</div>
+          <div class="d-none">{{ form.cover_photo }}</div>
+        </div>
+
+        <!-- ── Form Fields ── -->
+        <div class="row g-4">
+          <div class="col-12">
+            <label class="form-label-cc">Headline / Bio</label>
+            {{ form.bio }}
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label-cc">Full Name</label>
+            {{ form.full_name }}
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label-cc">Department</label>
+            {{ form.department }}
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label-cc">Batch / Year</label>
+            {{ form.batch }}
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label-cc">Primary Interest (Domain)</label>
+            {{ form.domain }}
+          </div>
+
+          <!-- Skills -->
+          <div class="col-12 mt-2">
+            <label class="form-label-cc">Expertise &amp; Skills</label>
+            <div class="d-flex flex-wrap gap-2 mb-3" id="skillsList"></div>
+            <div class="input-group skill-input-group">
+              <input type="text" id="skillInput" class="form-control"
+                     placeholder="Add a skill (e.g. Python, UX Design)">
+              <button class="btn btn-outline-primary" type="button" onclick="addSkill()">Add</button>
+            </div>
+          </div>
+
+          <!-- Social Links -->
+          <div class="col-12 border-top pt-4">
+            <label class="form-label-cc">Social &amp; Professional Links</label>
+            <div class="row g-3 social-links-row">
+              <div class="col-12 col-md-4">
+                <div class="input-group">
+                  <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-linkedin text-primary"></i>
+                  </span>
+                  {{ form.linkedin_url }}
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="input-group">
+                  <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-github text-dark"></i>
+                  </span>
+                  {{ form.github_url }}
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="input-group">
+                  <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-globe text-success"></i>
+                  </span>
+                  {{ form.portfolio_url }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Save -->
+          <div class="col-12 mt-4">
+            <button type="submit" class="btn btn-primary-cc w-100 py-3 rounded-pill fw-bold save-btn">
+              Save Profile Changes
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let skills = [
+    {% for user_skill in form.instance.user.user_skills.all %}
+      "{{ user_skill.skill.name|escapejs }}"{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  function renderSkills() {
+    const list = document.getElementById('skillsList');
+    list.innerHTML = '';
+    skills.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'skill-badge-cc';
+      div.innerHTML = `${s} <i class="bi bi-x-lg" onclick="removeSkill('${s}')"></i>`;
+      list.appendChild(div);
+    });
+    document.getElementById('skillsDataInput').value = JSON.stringify(skills);
+  }
+
+  window.addSkill = () => {
+    const inp = document.getElementById('skillInput');
+    const val = inp.value.trim();
+    if (val && !skills.includes(val)) {
+      skills.push(val);
+      renderSkills();
+      inp.value = '';
+    }
+  };
+
+  window.removeSkill = (skill) => {
+    skills = skills.filter(s => s !== skill);
+    renderSkills();
+  };
+
+  document.getElementById('skillInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addSkill(); }
+  });
+
+  // Sync avatar preview across both mobile and desktop img tags
+  document.getElementById('id_profile_picture').addEventListener('change', function () {
+    if (this.files && this.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById('avatarPreview').src = ev.target.result;
+        const desk = document.getElementById('avatarPreviewDesktop');
+        if (desk) desk.src = ev.target.result;
+      };
+      reader.readAsDataURL(this.files[0]);
+    }
+  });
+
+  // Sync cover preview across both mobile and desktop divs
+  document.getElementById('id_cover_photo').addEventListener('change', function () {
+    if (this.files && this.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.querySelectorAll('#coverPreview, #coverPreviewDesktop').forEach(el => {
+          el.style.backgroundImage = `url(${ev.target.result})`;
+        });
+      };
+      reader.readAsDataURL(this.files[0]);
+    }
+  });
+
+  renderSkills();
+</script>
+{% endblock %}

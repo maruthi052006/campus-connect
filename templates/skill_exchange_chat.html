@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Chat with {{ partner.full_name }}{% endblock %}
+
+{% block body_class %}chat-mode-active{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Hide surrounding UI in chat mode ── */
+  .chat-mode-active .navbar,
+  .chat-mode-active #sidebar,
+  .chat-mode-active .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  .chat-mode-active {
+    padding-top: 0 !important;
+    overflow: hidden !important;
+    background: #f3f2ef;
+  }
+
+  .chat-mode-active .main-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important; /* dynamic viewport on mobile browsers */
+    display: block !important;
+  }
+
+  .chat-mode-active .content-area {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+  }
+
+  /* ── Chat shell — fills entire viewport ── */
+  .chat-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh; /* prevents address-bar resize jump on mobile */
+    width: 100%;
+    max-width: 100%;
+    background: white;
+    position: fixed;  /* pin to viewport so keyboard doesn't push it */
+    inset: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  /* ── Header ── */
+  .chat-header {
+    flex-shrink: 0;          /* never compress */
+    padding: 10px 12px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    /* Respect device notch / status bar */
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+
+  .back-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .back-btn:hover { background: var(--primary-light); color: var(--primary); }
+
+  .chat-partner-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-grow: 1;
+    margin-left: 6px;
+    min-width: 0; /* allow text-truncate to work */
+  }
+
+  .chat-partner-info h6 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Messages area — takes all remaining space ── */
+  .messages-container {
+    flex: 1 1 0;             /* grow to fill, shrink when keyboard opens */
+    min-height: 0;           /* critical: lets flexbox actually shrink it */
+    padding: 16px 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #f3f2ef;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* ── Bubbles ── */
+  .message-wrapper {
+    display: flex;
+    max-width: 80%;
+    margin-bottom: 2px;
+  }
+  .message-wrapper.me    { align-self: flex-end; }
+  .message-wrapper.other { align-self: flex-start; }
+
+  .message-bubble {
+    padding: 9px 13px;
+    border-radius: 18px;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    position: relative;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .message-wrapper.me .message-bubble {
+    background: var(--primary);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .message-wrapper.other .message-bubble {
+    background: white;
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+
+  .timestamp {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    margin-top: 3px;
+    display: block;
+  }
+  .message-wrapper.me .timestamp {
+    text-align: right;
+    color: rgba(255,255,255,0.8);
+  }
+
+  /* ── Input area — always pinned to bottom ── */
+  .chat-input-area {
+    flex-shrink: 0;
+    padding: 10px 12px;
+    background: white;
+    border-top: 1px solid var(--border);
+    /* Respect home indicator on iPhone */
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .input-pill {
+    display: flex;
+    align-items: center;
+    background: #f0f2f5;
+    border-radius: 24px;
+    padding: 4px 6px 4px 14px;
+    gap: 6px;
+  }
+
+  .chat-input {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    padding: 8px 0;
+    outline: none;
+    font-size: 1rem;
+    min-width: 0;
+  }
+
+  .send-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .send-btn:active   { transform: scale(0.9); }
+  .send-btn:disabled { background: var(--border); cursor: not-allowed; }
+
+  /* ── Mobile-specific tweaks ── */
+  @media (max-width: 575.98px) {
+    .message-wrapper {
+      max-width: 88%;
+    }
+    .messages-container {
+      padding: 12px 10px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-layout">
+
+  <!-- Header -->
+  <header class="chat-header">
+    <div class="d-flex align-items-center flex-grow-1 min-width-0">
+      <a href="{% url 'skills:skill_exchange' %}" class="back-btn">
+        <i class="bi bi-chevron-left fs-5"></i>
+      </a>
+      <div class="chat-partner-info">
+        <div class="avatar-sm bg-primary-light text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+             style="width:40px; height:40px;">
+          {{ partner.full_name|slice:":1"|upper }}
+        </div>
+        <div class="overflow-hidden">
+          <h6 class="fw-bold mb-0 text-dark text-truncate">{{ partner.full_name }}</h6>
+          <small class="text-success" style="font-size:0.72rem;">
+            <i class="bi bi-circle-fill" style="font-size:0.45rem;"></i> Active Now
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-shrink-0">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-link text-secondary" data-bs-toggle="dropdown">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="{% url 'accounts:user_profile' partner.username %}">View Profile</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="#">End Session</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <!-- Messages -->
+  <div class="messages-container" id="messagesContainer">
+    {% for msg in chat_messages %}
+      <div class="message-wrapper {% if msg.sender == user %}me{% else %}other{% endif %}" data-id="{{ msg.id }}">
+        <div class="message-bubble">
+          {{ msg.content }}
+          <span class="timestamp">{{ msg.timestamp|date:"H:i" }}</span>
+        </div>
+      </div>
+    {% empty %}
+      <div class="text-center py-5 text-muted d-flex flex-column align-items-center justify-content-center h-100" id="noMessages">
+        <i class="bi bi-chat-heart text-primary opacity-25 mb-3" style="font-size:3.5rem;"></i>
+        <h5 class="fw-bold">New Skill Exchange!</h5>
+        <p class="small px-4">Introduce yourself and discuss how you want to swap skills.</p>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Input -->
+  <div class="chat-input-area">
+    <form id="chatForm" autocomplete="off">
+      <div class="input-pill">
+        <input type="text" id="chatInput" class="chat-input"
+               placeholder="Aa" autocomplete="off" required
+               inputmode="text" enterkeyhint="send">
+        <button type="submit" class="send-btn" id="sendBtn">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const msgContainer = document.getElementById('messagesContainer');
+  const chatForm     = document.getElementById('chatForm');
+  const chatInput    = document.getElementById('chatInput');
+  const sendBtn      = document.getElementById('sendBtn');
+  const sessionId    = "{{ session.id }}";
+  let lastMsgId      = "{% if chat_messages %}{{ chat_messages.last.id }}{% else %}0{% endif %}";
+
+  const scrollToBottom = (instant = false) => {
+    requestAnimationFrame(() => {
+      msgContainer.scrollTo({
+        top: msgContainer.scrollHeight,
+        behavior: instant ? 'auto' : 'smooth'
+      });
+    });
+  };
+
+  scrollToBottom(true);
+
+  /* When the virtual keyboard opens on mobile the viewport shrinks.
+     Scroll to bottom so the latest message stays visible. */
+  if (typeof visualViewport !== 'undefined') {
+    visualViewport.addEventListener('resize', () => scrollToBottom(true));
+  }
+
+  const appendMessage = (msg) => {
+    const noMsg = document.getElementById('noMessages');
+    if (noMsg) noMsg.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.className = `message-wrapper ${msg.is_me ? 'me' : 'other'}`;
+    wrapper.dataset.id = msg.id;
+    wrapper.innerHTML = `
+      <div class="message-bubble">
+        ${msg.content}
+        <span class="timestamp">${msg.timestamp}</span>
+      </div>
+    `;
+    msgContainer.appendChild(wrapper);
+    scrollToBottom();
+    lastMsgId = msg.id;
+  };
+
+  chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const content = chatInput.value.trim();
+    if (!content) return;
+
+    chatInput.value = '';
+    sendBtn.disabled = true;
+
+    try {
+      const res  = await fetch("{% url 'skills:send_exchange_message_ajax' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ session_id: sessionId, content })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        appendMessage({
+          id: data.msg_id,
+          content: data.content,
+          timestamp: data.timestamp,
+          is_me: true
+        });
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    } finally {
+      sendBtn.disabled = false;
+      chatInput.focus();
+    }
+  });
+
+  // Poll for new messages every 3 seconds
+  const fetchNewMessages = async () => {
+    try {
+      const res  = await fetch(`{% url 'skills:get_exchange_messages_ajax' session.id %}?last_id=${lastMsgId}`);
+      const data = await res.json();
+      if (data.status === 'success' && data.messages.length > 0) {
+        data.messages.forEach(msg => {
+          if (!document.querySelector(`[data-id="${msg.id}"]`)) {
+            appendMessage(msg);
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Polling error:', err);
+    }
+  };
+
+  setInterval(fetchNewMessages, 3000);
+</script>
+{% endblock %}

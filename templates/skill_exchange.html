@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Skill Exchange{% endblock %}
+
+{% block extra_css %}
+<style>
+  .exchange-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .exchange-tab-btn {
+    background: transparent;
+    border: none;
+    padding: 8px 20px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-radius: 20px;
+    transition: all 0.2s;
+  }
+  .exchange-tab-btn.active {
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+  .exchange-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+  .exchange-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .exchange-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 12px;
+  }
+  .status-pending { background: #FEF3C7; color: #92400E; }
+  .status-active { background: #DBEAFE; color: #1E40AF; }
+  .status-completed { background: #D1FAE5; color: #065F46; }
+
+  .skill-match-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px;
+    align-items: center;
+    text-align: center;
+  }
+  .participant-box {
+    padding: 12px;
+    background: var(--bg-main);
+    border-radius: 8px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-9">
+    <div class="cc-card mb-4 d-flex justify-content-between align-items-center">
+      <div>
+        <h4 class="fw-bold mb-1">Skill Exchange</h4>
+        <p class="text-secondary small mb-0">Learn and teach with your peers.</p>
+      </div>
+      <button class="btn-primary-cc" data-bs-toggle="modal" data-bs-target="#newExchangeModal">
+        <i class="bi bi-plus-lg me-1"></i> New Request
+      </button>
+    </div>
+
+    <div class="exchange-tabs">
+      <button class="exchange-tab-btn active" data-tab="received">Received <span class="badge bg-light text-primary ms-1">{{ received.count }}</span></button>
+      <button class="exchange-tab-btn" data-tab="sent">Sent <span class="badge bg-light text-primary ms-1">{{ sent.count }}</span></button>
+      <button class="exchange-tab-btn" data-tab="active">Active <span class="badge bg-light text-primary ms-1">{{ active.count }}</span></button>
+    </div>
+
+    <!-- Received Section -->
+    <div id="received" class="exchange-view">
+      {% for ex in received %}
+        <div class="exchange-card">
+          <div class="exchange-header">
+            <span class="exchange-status status-pending">Inbound Request</span>
+            <span class="small text-muted">{{ ex.created_at|timesince }} ago</span>
+          </div>
+          <div class="skill-match-grid mb-4">
+            <div class="participant-box">
+              <strong class="d-block mb-1">{{ ex.sender.full_name }}</strong>
+              <div class="small text-secondary">Offers:</div>
+              <div class="mt-1">
+                {% for s in ex.offered_skills.all %}
+                  <span class="badge bg-white text-primary border rounded-pill fw-normal">{{ s.name }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            <i class="bi bi-arrow-left-right fs-4 text-primary"></i>
+            <div class="participant-box">
+              <strong class="d-block mb-1">YOU</strong>
+              <div class="small text-secondary">To Teach:</div>
+              <div class="mt-1">
+                {% for s in ex.requested_skills.all %}
+                  <span class="badge bg-white text-primary border rounded-pill fw-normal">{{ s.name }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-success-cc px-4" onclick="handleExchange({{ ex.id }}, 'accept')">Accept</button>
+            <button class="btn btn-sm btn-outline-danger border-0" onclick="handleExchange({{ ex.id }}, 'reject')">Decline</button>
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-center py-5">
+          <p class="text-muted">No pending requests received.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Sent Section -->
+    <div id="sent" class="exchange-view d-none">
+      {% for ex in sent %}
+        <div class="exchange-card">
+          <div class="exchange-header">
+            <span class="exchange-status status-pending">Pending Response</span>
+            <span class="small text-muted">Sent to {{ ex.receiver.full_name }}</span>
+          </div>
+          <div class="skill-match-grid mb-3 opacity-75">
+            <div class="participant-box">
+              <strong class="d-block mb-1">YOU</strong>
+              <div class="small text-secondary">Offering:</div>
+              <div class="mt-1">
+                {% for s in ex.offered_skills.all %}
+                  <span class="badge bg-white text-primary border rounded-pill fw-normal">{{ s.name }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            <i class="bi bi-arrow-right text-muted"></i>
+            <div class="participant-box">
+              <strong class="d-block mb-1">{{ ex.receiver.full_name }}</strong>
+              <div class="small text-secondary">Wants to learn:</div>
+              <div class="mt-1">
+                {% for s in ex.requested_skills.all %}
+                  <span class="badge bg-white text-primary border rounded-pill fw-normal">{{ s.name }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary border-0" onclick="handleExchange({{ ex.id }}, 'withdraw')">Withdraw Request</button>
+        </div>
+      {% empty %}
+        <div class="text-center py-5">
+          <p class="text-muted">No outgoing requests.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Active Section -->
+    <div id="active" class="exchange-view d-none">
+      {% for ex in active %}
+        <div class="exchange-card border-primary">
+          <div class="exchange-header">
+            <span class="exchange-status status-active">In Progress</span>
+            <span class="badge bg-primary rounded-pill">Chat Enabled</span>
+          </div>
+          <div class="skill-match-grid mb-4">
+            <div class="participant-box">
+              <strong class="d-block mb-1">Partner: {{ ex.sender.full_name|default:ex.receiver.full_name }}</strong>
+            </div>
+            <i class="bi bi-patch-check-fill text-primary"></i>
+            <div class="participant-box">
+              <strong class="d-block">Skill Swap Active</strong>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="{% url 'skills:exchange_chat' ex.session.id %}" class="btn btn-sm btn-outline-cc flex-grow-1"><i class="bi bi-chat-text me-1"></i> Chat with Partner</a>
+            <button class="btn btn-sm btn-success-cc px-4" onclick="handleExchange({{ ex.id }}, 'complete')">Mark Complete</button>
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-center py-5">
+          <p class="text-muted">No active exchanges at the moment.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="cc-card">
+      <h6 class="fw-bold mb-3">Community Stats</h6>
+      <div class="mb-3">
+        <h5 class="fw-bold text-primary mb-0">{{ active.count|add:completed.count|default:12 }}</h5>
+        <div class="small text-muted">Exchanges completed this month</div>
+      </div>
+      <div class="small text-secondary">
+        <i class="bi bi-lightning-charge-fill text-warning"></i> 
+        Teaching a skill earns you 10 CampusPoints!
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: New Request -->
+<div class="modal fade" id="newExchangeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-0 bg-light">
+        <h5 class="modal-title fw-bold">Propose Skill Exchange</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{% url 'skills:new_exchange_request' %}" method="POST">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Select Recipient</label>
+            {{ form.receiver }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Skills You Can Teach</label>
+            {{ form.offered_skills }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Skills You Want to Learn</label>
+            {{ form.requested_skills }}
+          </div>
+        </div>
+        <div class="modal-footer border-0 p-4 pt-0">
+          <button type="submit" class="btn-primary-cc w-100">Send Exchange Proposal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Tab Switching
+  document.querySelectorAll('.exchange-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.exchange-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const target = btn.dataset.tab;
+      document.querySelectorAll('.exchange-view').forEach(v => v.classList.add('d-none'));
+      document.getElementById(target).classList.remove('d-none');
+    });
+  });
+
+  // Handle Actions
+  const handleExchange = async (id, action) => {
+    const urls = {
+      accept: "{% url 'skills:accept_exchange_ajax' %}",
+      reject: "{% url 'skills:reject_exchange_ajax' %}",
+      withdraw: "{% url 'skills:withdraw_exchange_ajax' %}",
+      complete: "{% url 'skills:complete_exchange_ajax' %}"
+    };
+    
+    try {
+      const res = await fetch(urls[action], {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ request_id: id })
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        location.reload();
+      } else {
+        showToast(data.message || 'Error processing request', 'danger');
+      }
+    } catch(err) {
+      showToast('Connection error', 'danger');
+    }
+  };
+</script>
+{% endblock %}

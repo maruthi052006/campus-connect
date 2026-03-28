@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Admin · Add User{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-sidebar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .admin-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .admin-nav-item:hover {
+    background: var(--bg-main);
+    color: var(--primary);
+  }
+  .admin-nav-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .admin-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+  }
+  .credentials-box {
+    background: #f8f9fa;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: monospace;
+    position: relative;
+    border-left: 4px solid var(--success);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-3">
+    <div class="admin-sidebar shadow-sm">
+      <div class="p-3 border-bottom bg-light">
+        <h6 class="fw-bold mb-0 text-dark">Campus Admin</h6>
+        <small class="text-muted">Control Panel</small>
+      </div>
+      <div class="nav flex-column">
+        <a href="{% url 'admin_add_user' %}" class="admin-nav-item active">
+          <i class="bi bi-person-plus"></i> Add User
+        </a>
+        <a href="{% url 'admin_bulk_upload' %}" class="admin-nav-item">
+          <i class="bi bi-cloud-upload"></i> Bulk Upload
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-9">
+    <div class="admin-card shadow-sm">
+      <h4 class="fw-bold mb-4">Create New Account</h4>
+      
+      <form id="addUserForm" method="post">
+        {% csrf_token %}
+        <div class="row g-4">
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-uppercase text-muted">Roll Number / ID</label>
+            <input type="text" name="roll_number" id="roll_number" class="form-control" placeholder="e.g. 2024CS101" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-uppercase text-muted">Full Name</label>
+            <input type="text" name="full_name" id="full_name" class="form-control" placeholder="e.g. Rahul Verma" required>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-bold text-uppercase text-muted">Email Address</label>
+            <input type="email" name="email" id="email" class="form-control" placeholder="rahul@campus.edu" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-uppercase text-muted">Department</label>
+            <select name="department" id="department" class="form-select">
+              <option value="">Select Department</option>
+              <option>Artificial Intelligence & Data Science</option>
+              <option>Civil Engineering</option>
+              <option>Computer Science & Engineering</option>
+              <option>Computer Science and Engineering (Artificial Intelligence & Machine Learning)</option>
+              <option>Computer Science and Engineering (Cyber Security)</option>
+              <option>Electrical & Electronics Engineering</option>
+              <option>Electronics & Communication Engineering</option>
+              <option>Electronics Engineering (VLSI Design and Technology)</option>
+              <option>Information Technology</option>
+              <option>Mechanical Engineering</option>
+              <option>Mechatronics Engineering</option>
+              <option>Science & Humanities</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-uppercase text-muted">Batch</label>
+            <input type="text" name="batch" id="batch" class="form-control" placeholder="e.g. 2026">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-bold text-uppercase text-muted">Initial Role</label>
+            <div class="d-flex gap-4 mt-2">
+              <label><input type="radio" name="role" value="Student" checked> Student</label>
+              <label><input type="radio" name="role" value="Teacher"> Teacher</label>
+              <label><input type="radio" name="role" value="Management"> Management</label>
+            </div>
+          </div>
+          <div class="col-12 pt-3">
+            <button type="submit" class="btn btn-primary-cc px-5 py-2 rounded-pill fw-bold" id="submitBtn">Create User</button>
+          </div>
+        </div>
+      </form>
+
+      <div id="credentialsBox" class="credentials-box mt-4 d-none">
+        <h6 class="fw-bold text-success mb-2"><i class="bi bi-check-circle-fill me-2"></i>User Created Successfully</h6>
+        <div id="credentialsContent"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerText = 'Creating...';
+
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      const res = await fetch('{% url "admin_add_user" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if(result.status === 'success') {
+        showToast(result.message, 'success');
+        document.getElementById('credentialsBox').classList.remove('d-none');
+        document.getElementById('credentialsContent').innerHTML = `
+          <strong>Username:</strong> ${result.credentials.username}<br>
+          <strong>Password:</strong> ${result.credentials.password}<br>
+          <strong>Full Name:</strong> ${result.credentials.full_name}
+        `;
+        e.target.reset();
+      } else {
+        showToast(result.message, 'danger');
+      }
+    } catch(err) {
+      showToast('System error', 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Create User';
+    }
+  });
+</script>
+{% endblock %}

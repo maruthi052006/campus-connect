@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Edit {{ organization.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .edit-org-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .form-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+  }
+  .form-label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .preview-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .logo-preview {
+    width: 120px;
+    height: 120px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .banner-preview {
+    flex-grow: 1;
+    height: 120px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f8f9fa;
+    position: relative;
+  }
+  .banner-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-org-container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1">Edit Organization</h3>
+      <p class="text-secondary small mb-0">Update your organization's profile and visuals.</p>
+    </div>
+    <a href="{% url 'organizations:org_dashboard' organization.slug %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+      <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+    </a>
+  </div>
+
+  <div class="form-card shadow-sm">
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      <div class="preview-container">
+        <div class="flex-column">
+          <label class="form-label d-block">Current Logo</label>
+          <div class="logo-preview">
+            {% if organization.logo %}
+              <img src="{{ organization.logo.url }}" id="logoPreviewImg">
+            {% else %}
+              <i class="bi bi-image text-muted fs-2"></i>
+            {% endif %}
+          </div>
+        </div>
+        <div class="flex-column flex-grow-1">
+          <label class="form-label d-block">Current Banner</label>
+          <div class="banner-preview">
+            {% if organization.cover_photo %}
+              <img src="{{ organization.cover_photo.url }}" id="bannerPreviewImg">
+            {% else %}
+              <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
+                No Banner Set
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-md-12 mb-3">
+          <label for="{{ form.name.id_for_label }}" class="form-label">Organization Name</label>
+          {{ form.name }}
+          {% if form.name.errors %}
+            <div class="text-danger small mt-1">{{ form.name.errors }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.type.id_for_label }}" class="form-label">Category</label>
+          {{ form.type }}
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.domain.id_for_label }}" class="form-label">Domain</label>
+          {{ form.domain }}
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+          {{ form.description }}
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.logo.id_for_label }}" class="form-label">Change Logo</label>
+          {{ form.logo }}
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.cover_photo.id_for_label }}" class="form-label">Change Banner</label>
+          {{ form.cover_photo }}
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-top text-end">
+        <a href="{% url 'organizations:org_dashboard' organization.slug %}" class="btn btn-light rounded-pill px-4 me-2">Cancel</a>
+        <button type="submit" class="btn btn-primary-cc rounded-pill px-5">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

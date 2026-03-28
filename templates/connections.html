@@ -1,0 +1,452 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Connections{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Kill ALL horizontal overflow at every level ── */
+  html, body,
+  .main-wrapper,
+  .content-area,
+  .container,
+  .container-fluid {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── Outer card ── */
+  .cc-card {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  /* ── Tab bar: horizontal scroll, never widens page ── */
+  .tab-bar-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+  .tab-bar-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: var(--border);
+  }
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 10px;
+    margin-bottom: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+
+  .tab-item {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    border-radius: 20px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 0.875rem;
+  }
+  .tab-item:hover  { background: var(--sidebar-hover); color: var(--primary); }
+  .tab-item.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 10px rgba(10,102,194,0.2);
+  }
+
+  /* ── Users grid ── */
+  .users-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ── Individual user card ── */
+  .user-card {
+    box-sizing: border-box;
+    width: 100%;
+    overflow: hidden;   /* stop children from bleeding out */
+  }
+
+  .user-badge {
+    position: relative;
+    padding-top: 50px;
+  }
+  .user-badge-header {
+    height: 60px;
+    background: var(--primary-light);
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 0;
+  }
+  .user-badge-avatar {
+    width: 80px;
+    height: 80px;
+    border: 4px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 1;
+    margin: 0 auto;
+    display: block;
+  }
+
+  /* ── All action buttons always fill their card ── */
+  .user-card .p-3 .btn,
+  .user-card .p-3 .follow-btn,
+  .user-card .p-3 .remove-conn-btn,
+  .user-card .p-3 .connect-btn,
+  .user-card .p-3 [class*="btn-"] {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+  }
+
+  /* ── Search bar ── */
+  .search-input-group {
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+  }
+
+  /* ── Empty state spans all columns ── */
+  .empty-state-cell {
+    grid-column: 1 / -1;
+  }
+
+  /* ────────────────────────────
+     TABLET  576–767px
+  ──────────────────────────── */
+  @media (min-width: 576px) and (max-width: 767.98px) {
+    .users-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* ────────────────────────────
+     MOBILE  <576px
+  ──────────────────────────── */
+  @media (max-width: 575.98px) {
+    /* One card per row */
+    .users-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    /* Tight outer card padding */
+    .cc-card {
+      padding: 12px !important;
+    }
+
+    /* Header stacks */
+    .network-header {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+    }
+
+    /* Search full width */
+    .search-input-group {
+      max-width: 100%;
+    }
+
+    /* Smaller tab pills */
+    .tab-item {
+      padding: 5px 10px;
+      font-size: 0.78rem;
+    }
+
+    /* Tighter inner card padding */
+    .user-card .p-3 {
+      padding: 10px !important;
+    }
+
+    /* Smaller avatar */
+    .user-badge-avatar {
+      width: 64px;
+      height: 64px;
+    }
+    .user-badge {
+      padding-top: 42px;
+    }
+    .user-badge-header {
+      height: 50px;
+    }
+
+    /* Wrap long text gracefully */
+    .empty-state-cell p,
+    .empty-state-cell h5 {
+      word-break: break-word;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-card">
+
+  <!-- Header: title + search -->
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-3 network-header">
+    <h4 class="fw-bold mb-0">My Network</h4>
+    <div class="search-input-group position-relative">
+      <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+      <input type="text" id="searchInput"
+             class="form-control rounded-pill ps-5 border-0 shadow-sm"
+             style="background: var(--primary-light);"
+             placeholder="Search people in this tab...">
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar-container mb-4">
+    <div class="tab-bar px-1">
+      <div class="tab-item active" data-tab="followers">
+        Followers <span class="badge rounded-pill bg-light text-primary ms-1">{{ followers.count }}</span>
+      </div>
+      <div class="tab-item" data-tab="following">
+        Following <span class="badge rounded-pill bg-light text-primary ms-1">{{ following.count }}</span>
+      </div>
+      <div class="tab-item" data-tab="connections">
+        Connections <span class="badge rounded-pill bg-light text-primary ms-1">{{ connections|length }}</span>
+      </div>
+      <div class="tab-item" data-tab="suggestions">Discover</div>
+    </div>
+  </div>
+
+  <div id="usersContainer">
+
+    <!-- Followers -->
+    <div id="followersWrapper" class="users-grid">
+      {% for follow in followers %}
+        <div class="cc-card p-0 text-center user-card"
+             data-name="{{ follow.follower.full_name|default:follow.follower.username|lower }}">
+          <div class="user-badge-header"></div>
+          <div class="user-badge">
+            <div class="profile-avatar user-badge-avatar rounded-circle overflow-hidden">
+              <img src="{{ follow.follower.profile.get_avatar_url }}"
+                   class="w-100 h-100" style="object-fit:cover;">
+            </div>
+            <div class="p-3">
+              <h6 class="fw-bold mb-1 text-truncate">{{ follow.follower.full_name|default:follow.follower.username }}</h6>
+              <p class="text-muted small mb-3 text-truncate">{{ follow.follower.role }} · {{ follow.follower.department }}</p>
+              <button class="follow-btn btn-sm rounded-pill {% if follow.follower.id in following_ids %}btn-primary-cc{% else %}btn-outline-cc{% endif %}"
+                      data-id="{{ follow.follower.id }}">
+                {% if follow.follower.id in following_ids %}Following{% else %}Follow Back{% endif %}
+              </button>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-center py-5 empty-state-cell">
+          <p class="text-muted">No followers yet. Share your profile to grow your network!</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Following -->
+    <div id="followingWrapper" class="users-grid d-none">
+      {% for follow in following %}
+        <div class="cc-card p-0 text-center user-card"
+             data-name="{{ follow.following.full_name|default:follow.following.username|lower }}">
+          <div class="user-badge-header"></div>
+          <div class="user-badge">
+            <div class="profile-avatar user-badge-avatar rounded-circle overflow-hidden">
+              <img src="{{ follow.following.profile.get_avatar_url }}"
+                   class="w-100 h-100" style="object-fit:cover;">
+            </div>
+            <div class="p-3">
+              <h6 class="fw-bold mb-1 text-truncate">{{ follow.following.full_name|default:follow.following.username }}</h6>
+              <p class="text-muted small mb-3 text-truncate">{{ follow.following.role }} · {{ follow.following.department }}</p>
+              <button class="btn btn-outline-danger btn-sm rounded-pill follow-btn"
+                      data-id="{{ follow.following.id }}">
+                Unfollow
+              </button>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-center py-5 empty-state-cell">
+          <p class="text-muted">You are not following anyone yet.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Connections -->
+    <div id="connectionsWrapper" class="users-grid d-none">
+      {% for conn in connections %}
+        <div class="cc-card p-0 text-center user-card"
+             data-name="{{ conn.full_name|default:conn.username|lower }}">
+          <div class="user-badge-header"></div>
+          <div class="user-badge">
+            <div class="profile-avatar user-badge-avatar rounded-circle overflow-hidden">
+              <img src="{{ conn.profile.get_avatar_url }}"
+                   class="w-100 h-100" style="object-fit:cover;">
+            </div>
+            <div class="p-3">
+              <h6 class="fw-bold mb-1 text-truncate">{{ conn.full_name|default:conn.username }}</h6>
+              <p class="text-muted small mb-3 text-truncate">{{ conn.role }} · {{ conn.department }}</p>
+              <button class="btn btn-outline-secondary btn-sm rounded-pill remove-conn-btn"
+                      data-id="{{ conn.id }}">
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-center py-5 empty-state-cell">
+          <p class="text-muted">No mutual connections found.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Suggestions / Discover -->
+    <div id="suggestionsWrapper" class="users-grid d-none">
+      {% for u in suggested %}
+        <div class="user-item">
+          {% include 'includes/user_card.html' with u=u %}
+        </div>
+      {% empty %}
+        <div class="text-center py-5 empty-state-cell">
+          <div class="mb-3">
+            <i class="bi bi-people text-muted" style="font-size:3rem; opacity:0.3;"></i>
+          </div>
+          <h5 class="text-secondary fw-bold">Nothing to show yet</h5>
+          <p class="text-muted small">Try searching in the Explore tab to find new people!</p>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let activeTab = 'followers';
+
+  document.querySelectorAll('.tab-item').forEach(tab => {
+    tab.addEventListener('click', () => {
+      activeTab = tab.dataset.tab;
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('#usersContainer > div').forEach(div => div.classList.add('d-none'));
+      document.getElementById(activeTab + 'Wrapper').classList.remove('d-none');
+      document.getElementById('searchInput').value = '';
+    });
+  });
+
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('#' + activeTab + 'Wrapper .user-card').forEach(card => {
+        card.classList.toggle('d-none', !(card.dataset.name || '').includes(q));
+      });
+    });
+  }
+
+  // Follow / Unfollow
+  document.querySelectorAll('.follow-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const userId = btn.dataset.id;
+      btn.disabled = true;
+      try {
+        const res = await fetch("{% url 'connections:follow_toggle_ajax' %}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+          body: JSON.stringify({ user_id: userId })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          if (data.following) {
+            btn.innerText = 'Following';
+            btn.classList.add('btn-primary-cc');
+            btn.classList.remove('btn-outline-cc', 'btn-outline-danger');
+          } else {
+            if (activeTab === 'following') {
+              btn.closest('.user-card').remove();
+            } else {
+              btn.innerText = 'Follow Back';
+              btn.classList.remove('btn-primary-cc');
+              btn.classList.add('btn-outline-cc');
+            }
+          }
+        }
+      } catch (err) { console.error(err); }
+      btn.disabled = false;
+    });
+  });
+
+  // Connect (Discover tab)
+  document.querySelectorAll('.connect-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const userId = btn.dataset.id;
+      const status = btn.dataset.status;
+      if (status === 'connected' || status === 'pending_sent') return;
+      btn.disabled = true;
+      try {
+        const endpoint = status === 'pending_received'
+          ? "{% url 'connections:accept_user_ajax' %}"
+          : "{% url 'connections:send_connection_request_ajax' %}";
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+          body: JSON.stringify({ user_id: userId })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          if (status === 'pending_received') {
+            btn.innerText = 'Connected';
+            btn.classList.replace('btn-primary-cc', 'btn-success');
+            btn.dataset.status = 'connected';
+            btn.disabled = true;
+          } else {
+            btn.innerText = 'Pending';
+            btn.classList.replace('btn-primary-cc', 'btn-secondary');
+            btn.dataset.status = 'pending_sent';
+            btn.disabled = true;
+          }
+        }
+      } catch (err) { console.error(err); }
+      btn.disabled = false;
+    });
+  });
+
+  // Remove Connection
+  document.querySelectorAll('.remove-conn-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to remove this connection?')) return;
+      const userId = btn.dataset.id;
+      btn.disabled = true;
+      try {
+        const res = await fetch("{% url 'connections:remove_connection_ajax' %}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+          body: JSON.stringify({ user_id: userId })
+        });
+        if (res.ok) {
+          btn.closest('.user-card').remove();
+          const badge = document.querySelector('.tab-item[data-tab="connections"] .badge');
+          if (badge) badge.innerText = Math.max(0, (parseInt(badge.innerText) || 0) - 1);
+        }
+      } catch (err) { console.error(err); }
+      btn.disabled = false;
+    });
+  });
+</script>
+{% endblock %}

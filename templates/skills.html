@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · My Skills{% endblock %}
+
+{% block extra_css %}
+<style>
+  .skills-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .skill-input-group {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .skill-pill {
+    background: var(--primary-light);
+    color: var(--primary);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+  .skill-pill:hover {
+    border-color: var(--primary);
+  }
+  .remove-skill-btn {
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+    color: var(--text-muted);
+  }
+  .remove-skill-btn:hover {
+    color: var(--danger);
+  }
+  .suggestion-badge {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    margin: 4px;
+    display: inline-block;
+    transition: all 0.2s;
+  }
+  .suggestion-badge:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="skills-container">
+  <div class="cc-card mb-4">
+    <h4 class="fw-bold mb-1">Expertise & Skills</h4>
+    <p class="text-secondary small">Adding skills helps you find the right collaborative projects and skill exchanges.</p>
+  </div>
+
+  <!-- Add Skill Section -->
+  <div class="skill-input-group shadow-sm">
+    <label class="form-label fw-bold small text-muted text-uppercase mb-3">Add New Skill</label>
+    <div class="input-group">
+      <input type="text" id="skillInput" class="form-control rounded-start-pill ps-4" placeholder="Enter a skill (e.g. Python, UI Design)...">
+      <button class="btn btn-primary-cc rounded-end-pill px-4" id="addSkillBtn">Add</button>
+    </div>
+    
+    <div class="mt-4">
+      <label class="form-label small text-muted text-uppercase mb-2 d-block">Suggested for you</label>
+      <div id="suggestions">
+        {% for skill in all_skills|slice:":8" %}
+          <div class="suggestion-badge" onclick="addSuggestedSkill('{{ skill.name }}')">{{ skill.name }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- My Skills Grid -->
+  <div class="cc-card shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h5 class="fw-bold mb-0">My Tracked Skills</h5>
+      <span class="badge bg-light text-primary border rounded-pill px-3" id="skillCount">{{ user_skills.count }} total</span>
+    </div>
+    
+    <div id="mySkillsList" class="d-flex flex-wrap">
+      {% for us in user_skills %}
+        <div class="skill-pill" data-id="{{ us.skill.id }}">
+          {{ us.skill.name }}
+          <span class="remove-skill-btn" onclick="removeSkill({{ us.skill.id }}, this)">&times;</span>
+        </div>
+      {% empty %}
+        <div class="text-center w-100 py-4" id="emptyState">
+          <i class="bi bi-journal-x fs-1 text-muted d-block mb-2"></i>
+          <p class="text-muted">No skills added yet. Start by adding one above!</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const skillInput = document.getElementById('skillInput');
+  const addBtn = document.getElementById('addSkillBtn');
+  const skillsList = document.getElementById('mySkillsList');
+  const emptyState = document.getElementById('emptyState');
+
+  const addSkill = async (name) => {
+    if(!name) return;
+    try {
+      const res = await fetch("{% url 'accounts:add_skill_ajax' %}", {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ skill_name: name })
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        location.reload(); // Simplest way to reflect changes correctly with IDs
+      } else {
+        showToast(data.message || 'Error adding skill', 'danger');
+      }
+    } catch(err) {
+      showToast('Connection error', 'danger');
+    }
+  };
+
+  addBtn.addEventListener('click', () => addSkill(skillInput.value.trim()));
+  skillInput.addEventListener('keypress', (e) => {
+    if(e.key === 'Enter') addSkill(skillInput.value.trim());
+  });
+
+  window.addSuggestedSkill = (name) => addSkill(name);
+
+  window.removeSkill = async (id, el) => {
+    const pill = el.closest('.skill-pill');
+    pill.style.opacity = '0.5';
+    try {
+      const res = await fetch("{% url 'accounts:remove_skill_ajax' %}", {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ skill_id: id })
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        pill.remove();
+        const countBadge = document.getElementById('skillCount');
+        countBadge.innerText = `${document.querySelectorAll('.skill-pill').length} total`;
+        if(document.querySelectorAll('.skill-pill').length === 0) {
+          location.reload();
+        }
+      } else {
+        pill.style.opacity = '1';
+        showToast(data.message || 'Error removing skill', 'danger');
+      }
+    } catch(err) {
+      pill.style.opacity = '1';
+      showToast('Connection error', 'danger');
+    }
+  };
+</script>
+{% endblock %}

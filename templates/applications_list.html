@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Review Applications{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-sidebar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .admin-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .admin-nav-item:hover {
+    background: var(--bg-main);
+    color: var(--primary);
+  }
+  .admin-nav-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .application-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .app-status {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 700;
+  }
+  .status-pending { background: #fff8e1; color: #f57c00; }
+  .status-accepted { background: #e8f5e9; color: #2e7d32; }
+  .status-rejected { background: #ffebee; color: #c62828; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Admin Sidebar -->
+  <div class="col-md-3">
+    <div class="admin-sidebar shadow-sm mb-4">
+      <div class="p-3 border-bottom bg-light">
+        <h6 class="fw-bold mb-0 text-dark">Administrative Panel</h6>
+        <small class="text-muted">{{ organization.name }}</small>
+      </div>
+      <div class="nav flex-column">
+        <a href="{% url 'organizations:org_dashboard' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="{% url 'organizations:org_members' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-people"></i> Members
+        </a>
+        <a href="{% url 'organizations:org_requests' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-person-plus"></i> Join Requests
+        </a>
+        <a href="{% url 'organizations:org_posts' organization.slug %}" class="admin-nav-item">
+          <i class="bi bi-file-post"></i> Manage Posts
+        </a>
+        <a href="{% url 'organizations:org_recruitment' organization.slug %}" class="admin-nav-item active">
+          <i class="bi bi-briefcase"></i> Recruitment
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-9">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold mb-0">Role Applications</h4>
+      <a href="{% url 'organizations:org_recruitment' organization.slug %}" class="btn btn-sm btn-outline-secondary rounded-pill">
+        <i class="bi bi-arrow-left me-1"></i> Back to Roles
+      </a>
+    </div>
+
+    <div id="applicationsContainer">
+      {% for app in applications %}
+        <div class="application-card shadow-sm">
+          <div class="d-flex gap-3 align-items-center">
+            {% include 'includes/user_info.html' with user_obj=app.applicant %}
+            <div>
+              <div class="fw-bold text-primary mb-1">{{ app.post.title }}</div>
+              <div class="text-muted small">Applied {{ app.created_at|timesince }} ago</div>
+            </div>
+          </div>
+          
+          <div class="d-flex align-items-center gap-3">
+            <span class="app-status status-{{ app.status }}">
+              {{ app.get_status_display }}
+            </span>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-light border rounded-pill px-3" data-bs-toggle="dropdown" {% if app.status != 'pending' %}disabled{% endif %}>
+                Action
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#" onclick="updateAppStatus({{ app.id }}, 'accepted')">Accept Candidate</a></li>
+                <li><a class="dropdown-item text-danger" href="#" onclick="updateAppStatus({{ app.id }}, 'rejected')">Reject</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="text-center py-5 bg-white border rounded">
+          <i class="bi bi-people fs-1 text-muted d-block mb-2"></i>
+          <p class="text-muted">No applications received yet.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% block extra_js %}
+<script>
+  const updateAppStatus = async (appId, status) => {
+    if(!confirm(`Are you sure you want to mark this application as ${status}?`)) return;
+    
+    try {
+      const res = await fetch(`/recruitment/application/${appId}/status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if(data.status === 'success') {
+        showToast(data.message, 'success');
+        location.reload(); 
+      } else {
+        showToast(data.message || 'Error updating status', 'danger');
+      }
+    } catch(err) {
+      showToast('Connection error', 'danger');
+    }
+  };
+</script>
+{% endblock %}
+{% endblock %}

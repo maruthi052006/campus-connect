@@ -1,0 +1,54 @@
+<div class="cc-card post-card mb-4" data-post-id="{{ post.id }}">
+  <div class="d-flex gap-3">
+    <div class="profile-avatar" style="width:48px; height:48px; flex-shrink: 0;">
+        <img src="{{ post.author.profile.get_avatar_url }}" class="rounded-circle w-100 h-100 shadow-sm" style="object-fit:cover;">
+    </div>
+    <div class="flex-grow-1">
+      <div class="d-flex justify-content-between">
+        <div>
+          <a href="{% url 'accounts:user_profile' post.author.username %}" class="text-decoration-none text-dark fw-600">
+            {{ post.author.full_name|default:post.author.username }}
+          </a>
+          <div class="text-muted small">{{ post.author.role }} · {{ post.author.department }}</div>
+        </div>
+        <span class="text-muted small">{{ post.created_at|timesince }} ago</span>
+      </div>
+      
+      <div class="post-content mt-3">
+        {{ post.content|linebreaksbr }}
+      </div>
+      
+      {% if post.image %}
+        <div class="post-image-container mt-3">
+          <img src="{{ post.image.url }}" class="img-fluid rounded w-100 lightbox-trigger" style="max-height: 500px; object-fit: cover; cursor: zoom-in;">
+        </div>
+      {% endif %}
+
+      <div class="post-actions d-flex gap-4 mt-3 pt-2 border-top">
+        <button class="btn btn-link p-0 text-decoration-none text-secondary like-post-btn {% if post.id in liked_post_ids %}text-danger{% endif %}" data-post-id="{{ post.id }}">
+          <i class="bi bi-heart{% if post.id in liked_post_ids %}-fill{% endif %}"></i>
+          <span class="like-count">{{ post.likes.count }}</span>
+        </button>
+        <button class="btn btn-link p-0 text-decoration-none text-secondary" onclick="toggleComments({{ post.id }})">
+          <i class="bi bi-chat"></i> {{ post.comments.count }}
+        </button>
+        <button class="btn btn-link p-0 text-decoration-none text-secondary save-post-btn {% if post.id in saved_post_ids %}text-primary{% endif %}" data-post-id="{{ post.id }}">
+          <i class="bi bi-bookmark{% if post.id in saved_post_ids %}-fill{% endif %}"></i>
+        </button>
+      </div>
+
+      <!-- Comments Section -->
+      <div class="comments-section mt-3 d-none" id="comments-{{ post.id }}">
+        <div class="comments-list mb-3">
+          {% for comment in post.comments.all %}
+            {% include 'partials/comment_item.html' with comment=comment %}
+          {% endfor %}
+        </div>
+        <div class="comment-input-group d-flex gap-2">
+          <input type="text" class="form-control form-control-sm" id="comment-input-{{ post.id }}" placeholder="Write a comment...">
+          <button class="btn btn-sm btn-primary-cc" onclick="submitInlineComment({{ post.id }})">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

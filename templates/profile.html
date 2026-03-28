@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · My Profile{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Banner ── */
+  .profile-banner {
+    height: 180px;
+    background: linear-gradient(135deg, var(--primary) 0%, #004182 100%);
+    border-radius: 8px 8px 0 0;
+  }
+
+  /* ── Avatar ── */
+  .profile-avatar-large {
+    width: 150px;
+    height: 150px;
+    border: 5px solid white;
+    margin-top: -75px;
+    margin-left: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+  }
+
+  /* ── Skill badge ── */
+  .tag-badge {
+    background: var(--primary-light);
+    color: var(--primary);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    display: inline-block;
+    margin: 4px;
+  }
+
+  /* ── Mobile: shrink banner & avatar ── */
+  @media (max-width: 575.98px) {
+    .profile-banner {
+      height: 120px;
+    }
+
+    .profile-avatar-large {
+      width: 90px;
+      height: 90px;
+      margin-top: -45px;
+      margin-left: 12px;
+    }
+
+    /* Stack avatar row vertically on very small screens */
+    .profile-header-row {
+      flex-direction: column;
+      align-items: flex-start !important;
+    }
+
+    /* Name + meta block sits below avatar */
+    .profile-header-meta {
+      margin-left: 0 !important;
+      margin-bottom: 0 !important;
+      width: 100%;
+    }
+
+    /* Push name + edit button into a proper row */
+    .profile-name-row {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 8px;
+      padding-right: 0 !important;
+      padding-top: 8px !important;
+    }
+
+    /* Edit button full width on tiny screens */
+    .profile-name-row .btn-outline-cc {
+      align-self: flex-start;
+    }
+
+    /* Tighten stats row */
+    .profile-stats {
+      gap: 1.5rem !important;
+    }
+  }
+
+  /* ── Tablet: moderate adjustments ── */
+  @media (min-width: 576px) and (max-width: 767.98px) {
+    .profile-banner {
+      height: 150px;
+    }
+
+    .profile-avatar-large {
+      width: 110px;
+      height: 110px;
+      margin-top: -55px;
+    }
+  }
+
+  /* ── Sidebar goes below content on small screens ── */
+  @media (max-width: 767.98px) {
+    .profile-sidebar {
+      margin-top: 0;
+    }
+  }
+
+  /* ── Projects grid: 1 col on mobile ── */
+  @media (max-width: 575.98px) {
+    .projects-grid .col-6 {
+      width: 100%;
+    }
+  }
+
+  /* ── Nav tabs scroll on small screens ── */
+  #profileTabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #profileTabs .nav-link {
+    white-space: nowrap;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-card p-0 mb-4 overflow-hidden border-0 shadow-sm">
+  {% if profile.cover_photo %}
+    <div class="profile-banner" style="background: url('{{ profile.cover_photo.url }}') center/cover;"></div>
+  {% else %}
+    <div class="profile-banner"></div>
+  {% endif %}
+
+  <div class="d-flex align-items-end mb-3 profile-header-row p-4">
+    <div class="avatar-placeholder profile-avatar-large">
+      {% if profile.profile_picture %}
+        <img src="{{ profile.profile_picture.url }}" class="rounded-circle w-100 h-100" style="object-fit:cover;">
+      {% else %}
+        <span class="display-3">{{ user.full_name|slice:":1"|upper }}</span>
+      {% endif %}
+    </div>
+
+    <div class="ms-3 mb-2 flex-grow-1 profile-header-meta">
+      <div class="d-flex justify-content-between align-items-center pe-4 pt-4 profile-name-row">
+        <div>
+          <h2 class="fw-bold mb-0 fs-4">{{ user.full_name|default:user.username }}</h2>
+          <p class="text-secondary mb-1 small">{{ user.role }} · {{ user.department }} · Batch {{ user.batch }}</p>
+        </div>
+        <a href="{% url 'accounts:edit_profile' %}" class="btn-outline-cc text-decoration-none">
+          <i class="bi bi-pencil me-1"></i> Edit Profile
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-3 px-sm-4 pb-4">
+    <div class="d-flex gap-4 mt-3 profile-stats">
+      <div class="stat-item">
+        <span class="fw-bold fs-5">{{ connections_count|default:0 }}</span>
+        <span class="text-muted small d-block">Connections</span>
+      </div>
+      <div class="stat-item">
+        <span class="fw-bold fs-5">{{ followers_count|default:0 }}</span>
+        <span class="text-muted small d-block">Followers</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Main content -->
+  <div class="col-12 col-md-8">
+
+    <!-- Bio / About -->
+    <div class="cc-card mb-4">
+      <h5 class="fw-bold mb-3">About</h5>
+      <p class="text-secondary mb-0">{{ profile.bio|default:"No bio provided yet. Add a bio to tell your peers more about you!" }}</p>
+    </div>
+
+    <!-- Skills -->
+    <div class="cc-card mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0">Skills</h5>
+        <a href="{% url 'accounts:skills' %}" class="small text-decoration-none">Manage Skills</a>
+      </div>
+      <div class="d-flex flex-wrap">
+        {% for user_skill in skills %}
+          <div class="tag-badge">{{ user_skill.skill.name }}</div>
+        {% empty %}
+          <p class="text-muted small mb-0">No skills tracked yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Posts / Projects tabs -->
+    <div class="cc-card p-0">
+      <ul class="nav nav-tabs nav-fill border-0" id="profileTabs">
+        <li class="nav-item">
+          <button class="nav-link active fw-bold py-3 border-0" data-bs-toggle="tab" data-bs-target="#tab-posts">POSTS</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link fw-bold py-3 border-0" data-bs-toggle="tab" data-bs-target="#tab-projects">PROJECTS</button>
+        </li>
+      </ul>
+      <div class="tab-content p-3 p-sm-4">
+        <div class="tab-pane fade show active" id="tab-posts">
+          {% for post in posts %}
+            {% include 'includes/post_card.html' with post=post %}
+          {% empty %}
+            <p class="text-muted text-center py-4">You haven't posted anything yet.</p>
+          {% endfor %}
+        </div>
+        <div class="tab-pane fade" id="tab-projects">
+          <div class="row g-3 projects-grid">
+            {% for proj in projects %}
+              <div class="col-6">
+                <div class="border rounded p-3 h-100">
+                  <h6 class="fw-bold mb-1">{{ proj.title }}</h6>
+                  <p class="text-muted small mb-0">{{ proj.description|truncatechars:60 }}</p>
+                </div>
+              </div>
+            {% empty %}
+              <div class="col-12">
+                <p class="text-muted text-center py-4">No projects listed yet.</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-12 col-md-4 profile-sidebar">
+
+    <!-- Analytics -->
+    <div class="cc-card">
+      <h6 class="fw-bold mb-3">Analytics</h6>
+      <div class="mb-3">
+        <div class="text-primary fw-bold">{{ profile_views|default:0 }}</div>
+        <div class="small text-muted">Profile views past 7 days</div>
+      </div>
+      <div>
+        <div class="text-primary fw-bold">{{ post_impressions|default:0 }}</div>
+        <div class="small text-muted">Post impressions</div>
+      </div>
+    </div>
+
+    <!-- Associations -->
+    <div class="cc-card mt-4">
+      <h6 class="fw-bold mb-3">Associations</h6>
+      {% for membership in organizations %}
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <div class="avatar-placeholder" style="width:40px; height:40px; font-size:0.8rem; flex-shrink:0;">
+            {% if membership.organization.logo %}
+              <img src="{{ membership.organization.logo.url }}" class="rounded w-100 h-100">
+            {% else %}
+              {{ membership.organization.name|slice:":1"|upper }}
+            {% endif %}
+          </div>
+          <div class="overflow-hidden">
+            <div class="small fw-bold text-truncate">{{ membership.organization.name }}</div>
+            <div class="text-muted text-truncate" style="font-size:0.75rem;">{{ membership.role }}</div>
+          </div>
+        </div>
+      {% empty %}
+        <p class="text-muted small mb-0">No organizations yet.</p>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

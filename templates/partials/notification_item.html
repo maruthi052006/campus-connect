@@ -1,0 +1,20 @@
+<div class="notification-item {% if not notif.is_read %}unread{% endif %}" data-id="{{ notif.id }}" data-url="{{ notif.get_url }}">
+  <div class="notification-icon">
+    {% if notif.notif_type == 'like' %}👍
+    {% elif notif.notif_type == 'comment' %}💬
+    {% elif notif.notif_type == 'follow' %}👤
+    {% elif notif.notif_type == 'connect_request' %}🔗
+    {% elif notif.notif_type == 'connect_accept' %}✅
+    {% elif notif.notif_type == 'skill_exchange' %}🎓
+    {% elif notif.notif_type == 'org_join' %}🏢
+    {% elif notif.notif_type == 'org_accept' %}🏢
+    {% else %}🔔
+    {% endif %}
+  </div>
+  <div class="notification-content">
+    <div class="notification-message">
+      {{ notif.message|safe }}
+    </div>
+    <div class="notification-time">{{ notif.created_at|timesince }} ago</div>
+  </div>
+</div>

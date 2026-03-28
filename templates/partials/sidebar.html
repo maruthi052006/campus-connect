@@ -1,0 +1,83 @@
+<aside class="left-sidebar" id="globalSidebar">
+  <nav class="sidebar-nav">
+
+    {% with url_name=request.resolver_match.url_name %}
+
+    <a href="{% url 'feed:home' %}"
+       class="sidebar-item {% if url_name == 'home' %}active{% endif %}">
+      <i class="bi bi-house{% if url_name == 'home' %}-fill{% endif %}"></i>
+      <span>Home</span>
+    </a>
+
+    <a href="{% url 'search:explore' %}"
+       class="sidebar-item {% if url_name == 'explore' %}active{% endif %}">
+      <i class="bi bi-compass{% if url_name == 'explore' %}-fill{% endif %}"></i>
+      <span>Explore</span>
+    </a>
+
+    <a href="{% url 'accounts:my_profile' %}"
+       class="sidebar-item {% if url_name == 'my_profile' or url_name == 'edit_profile' %}active{% endif %}">
+      <i class="bi bi-person{% if url_name == 'my_profile' %}-fill{% endif %}"></i>
+      <span>My Profile</span>
+    </a>
+
+    <a href="{% url 'connections:connections' %}"
+       class="sidebar-item {% if 'connection' in url_name %}active{% endif %}">
+      <i class="bi bi-people{% if 'connection' in url_name %}-fill{% endif %}"></i>
+      <span>Connections</span>
+    </a>
+
+    <a href="{% url 'projects:projects' %}"
+       class="sidebar-item {% if 'project' in url_name %}active{% endif %}">
+       <i class="bi bi-folder2-open{% if 'project' in url_name %}-fill{% endif %}"></i>
+       <span>Projects</span>
+    </a>
+
+    <a href="{% url 'recruitment:recruitment_list' %}"
+       class="sidebar-item {% if 'recruitment' in url_name %}active{% endif %}">
+       <i class="bi bi-briefcase{% if 'recruitment' in url_name %}-fill{% endif %}"></i>
+       <span>Recruitment</span>
+    </a>
+
+    <a href="{% url 'skills:skill_exchange' %}"
+       class="sidebar-item {% if 'skill' in url_name or 'exchange' in url_name %}active{% endif %}">
+      <i class="bi bi-arrow-left-right"></i>
+      <span>Skill Exchange</span>
+    </a>
+
+    <a href="{% url 'campus_events:event_list' %}"
+       class="sidebar-item {% if 'event' in url_name %}active{% endif %}">
+       <i class="bi bi-calendar-event{% if 'event' in url_name %}-fill{% endif %}"></i>
+       <span>Events</span>
+    </a>
+
+    <a href="{% url 'organizations:organizations' %}"
+       class="sidebar-item {% if 'org' in url_name %}active{% endif %}">
+      <i class="bi bi-building{% if 'org' in url_name %}-fill{% endif %}"></i>
+      <span>Organizations</span>
+    </a>
+
+    <a href="{% url 'feed:saved_posts' %}"
+       class="sidebar-item {% if url_name == 'saved_posts' %}active{% endif %}">
+      <i class="bi bi-bookmark{% if url_name == 'saved_posts' %}-fill{% endif %}"></i>
+      <span>Saved</span>
+    </a>
+
+    <a href="{% url 'accounts:settings' %}"
+       class="sidebar-item {% if url_name == 'settings' %}active{% endif %}">
+      <i class="bi bi-gear{% if url_name == 'settings' %}-fill{% endif %}"></i>
+      <span>Settings</span>
+    </a>
+
+    {% if request.user.role == 'Admin' or request.user.role == 'Management' or request.user.is_superuser %}
+    <hr class="my-2 mx-3">
+    <a href="{% url 'admin_add_user' %}"
+       class="sidebar-item {% if url_name == 'admin_add_user' or url_name == 'admin_bulk_upload' %}active{% endif %}">
+      <i class="bi bi-shield-check"></i>
+      <span>Admin Panel</span>
+    </a>
+    {% endif %}
+
+    {% endwith %}
+  </nav>
+</aside>

@@ -1,0 +1,39 @@
+<div class="user-card cc-card d-flex flex-column h-100" data-id="{{ u.id }}">
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <div class="profile-avatar shadow-sm" style="width:56px; height:56px; flex-shrink:0;">
+        <img src="{{ u.profile.get_avatar_url }}" class="rounded-circle w-100 h-100" style="object-fit:cover;">
+    </div>
+    <div class="flex-grow-1 overflow-hidden">
+      <h6 class="fw-bold mb-0 text-truncate">{{ u.full_name|default:u.username }}</h6>
+      <small class="text-muted d-block text-truncate">{% if sub_text %}{{ sub_text }}{% else %}{{ u.role }}{% endif %}</small>
+    </div>
+  </div>
+  
+  <div class="small mb-3 text-secondary text-truncate">
+    {{ u.department }} · {{ u.batch|default:"General" }}
+  </div>
+
+  <div class="mb-3" style="min-height: 24px;">
+    {% for us in u.user_skills.all|slice:":2" %}
+      <span class="badge bg-light text-primary border rounded-pill fw-normal me-1 mb-1">{{ us.skill.name }}</span>
+    {% endfor %}
+  </div>
+
+  <div class="mt-auto d-grid gap-2">
+    <a href="{% url 'accounts:user_profile' u.username %}" class="btn btn-sm btn-outline-cc">View Profile</a>
+    {% if u != request.user %}
+    <button class="btn btn-sm follow-btn {% if u.id in following_ids %}btn-primary-cc{% else %}btn-outline-cc{% endif %}" data-id="{{ u.id }}">
+      {% if u.id in following_ids %}Following{% else %}Follow{% endif %}
+    </button>
+    <button class="btn btn-sm connect-btn {% if u.id in connection_ids %}btn-success{% elif u.id in pending_sent_ids %}btn-secondary{% else %}btn-primary-cc{% endif %}" 
+            data-id="{{ u.id }}"
+            data-status="{% if u.id in connection_ids %}connected{% elif u.id in pending_sent_ids %}pending_sent{% elif u.id in pending_received_ids %}pending_received{% else %}none{% endif %}"
+            {% if u.id in connection_ids or u.id in pending_sent_ids %}disabled{% endif %}>
+      {% if u.id in connection_ids %}Connected
+      {% elif u.id in pending_sent_ids %}Pending
+      {% elif u.id in pending_received_ids %}Accept Request
+      {% else %}Connect{% endif %}
+    </button>
+    {% endif %}
+  </div>
+</div>

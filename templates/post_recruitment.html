@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect · Post Recruitment{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .card-premium {
+    background: white;
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    padding: 2rem;
+  }
+  .form-label {
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+  }
+  .form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.1);
+  }
+  .btn-submit {
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border-radius: 30px;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(var(--primary-rgb), 0.3);
+    color: white;
+  }
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    color: var(--primary);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container py-4">
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'recruitment:recruitment_list' %}" class="text-decoration-none">Recruitment</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Post New Role</li>
+    </ol>
+  </nav>
+
+  <div class="card-premium">
+    <h2 class="section-title">Post New Recruitment Role</h2>
+    
+    <form method="post">
+      {% csrf_token %}
+      
+      <div class="mb-4">
+        <label for="{{ form.organization.id_for_label }}" class="form-label">Host Organization</label>
+        {{ form.organization }}
+        {% if form.organization.errors %}
+          <div class="text-danger small mt-1">{{ form.organization.errors }}</div>
+        {% endif %}
+        <div class="form-text mt-1 text-muted">Select the organization you are posting on behalf of.</div>
+      </div>
+
+      <div class="mb-4">
+        <label for="{{ form.title.id_for_label }}" class="form-label">Role Title</label>
+        {{ form.title }}
+        {% if form.title.errors %}
+          <div class="text-danger small mt-1">{{ form.title.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-4">
+        <label for="{{ form.description.id_for_label }}" class="form-label">Role Description</label>
+        {{ form.description }}
+        {% if form.description.errors %}
+          <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-4">
+          <label for="{{ form.deadline.id_for_label }}" class="form-label">Application Deadline</label>
+          {{ form.deadline }}
+          {% if form.deadline.errors %}
+            <div class="text-danger small mt-1">{{ form.deadline.errors }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 mb-4">
+          <label for="{{ form.required_skills.id_for_label }}" class="form-label">Required Skills</label>
+          {{ form.required_skills }}
+          {% if form.required_skills.errors %}
+            <div class="text-danger small mt-1">{{ form.required_skills.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <a href="{% url 'recruitment:recruitment_list' %}" class="btn btn-link text-decoration-none text-muted me-3">Cancel</a>
+        <button type="submit" class="btn btn-submit shadow-sm">
+          Publish Recruitment
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CampusConnect – Home{% endblock %}
+
+{% block extra_css %}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-lg-8 main-col">
+    <!-- POST COMPOSER -->
+    <div class="cc-card mb-4" id="composerCard">
+      <div class="d-flex gap-3 align-items-center">
+        <div class="avatar-placeholder" style="width:48px; height:48px;">
+          <img src="{{ request.user.profile.get_avatar_url }}" class="rounded-circle w-100 h-100" style="object-fit:cover;">
+        </div>
+        <div class="flex-grow-1 composer-trigger p-3 bg-light rounded-pill cursor-pointer" id="composerTrigger" style="cursor: pointer;">
+          Share something with your campus...
+        </div>
+      </div>
+
+      <div class="expanded-composer mt-3 d-none" id="expandedComposer">
+        <form id="postForm" method="POST" enctype="multipart/form-data">
+          {% csrf_token %}
+          <textarea name="content" id="postText" class="form-control mb-2" rows="3" placeholder="What's on your mind?"></textarea>
+          <div id="imagePreview" class="mb-2 d-none">
+            <img id="composerImagePreview" class="img-fluid rounded" style="max-height:200px;">
+            <button type="button" class="btn btn-sm btn-outline-danger mt-1" id="removeImageBtn">Remove</button>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <label class="btn btn-outline-secondary btn-sm mb-0 cursor-pointer">
+              <i class="bi bi-image"></i> Add Media
+              <input type="file" name="image" id="postImageInput" accept="image/*" class="d-none">
+            </label>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-light btn-sm rounded-pill px-3" id="cancelPostBtn">Cancel</button>
+              <button type="button" class="btn-primary-cc" id="submitPostBtn">Post</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- FEED CONTAINER -->
+    <div id="feedContainer">
+      {% for post in posts %}
+        {% include 'includes/post_card.html' with post=post %}
+      {% empty %}
+        <div class="cc-card text-center py-5">
+          <i class="bi bi-journals fs-1 text-muted"></i>
+          <p class="mt-2 text-secondary">Your feed is empty. Start following peers or departments!</p>
+          <a href="{% url 'search:explore' %}" class="btn-primary-cc text-decoration-none">Explore Campus</a>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if is_paginated and page_obj.has_next %}
+      <div class="text-center mt-4">
+        <a href="?page={{ page_obj.next_page_number }}" class="btn-outline-cc text-decoration-none" id="loadMoreBtn">Load More</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="col-lg-4 d-none d-lg-block">
+    <div class="cc-card">
+      <h6 class="fw-bold mb-3">Suggested for you</h6>
+      <div id="suggestionsContainer">
+        <div class="text-center py-3">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+        </div>
+      </div>
+      <a href="{% url 'search:explore' %}" class="btn btn-link btn-sm w-100 text-decoration-none mt-2">View all recommendations</a>
+    </div>
+
+    <div class="cc-card mt-3">
+      <h6 class="fw-bold mb-3">Campus Events</h6>
+      <div id="eventsContainer">
+        <div class="text-center py-3">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+        </div>
+      </div>
+      <a href="#" class="btn btn-link btn-sm w-100 text-decoration-none mt-2">Explore all events</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  /* ═══════════════════════════════════════
+     COMPOSER LOGIC
+  ═══════════════════════════════════════ */
+  const trigger  = document.getElementById('composerTrigger');
+  const expanded = document.getElementById('expandedComposer');
+  if (trigger) {
+    trigger.addEventListener('click', () => {
+      trigger.classList.add('d-none');
+      expanded.classList.remove('d-none');
+    });
+  }
+
+  // Image preview
+  const imageInput = document.getElementById('postImageInput');
+  const preview    = document.getElementById('imagePreview');
+  const previewImg = document.getElementById('composerImagePreview');
+  if (imageInput) {
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (re) => {
+          previewImg.src = re.target.result;
+          preview.classList.remove('d-none');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  document.getElementById('removeImageBtn')?.addEventListener('click', () => {
+    imageInput.value = '';
+    preview.classList.add('d-none');
+  });
+
+  // Cancel post
+  document.getElementById('cancelPostBtn')?.addEventListener('click', () => {
+    document.getElementById('postText').value = '';
+    const imageInput = document.getElementById('postImageInput');
+    const preview    = document.getElementById('imagePreview');
+    const trigger    = document.getElementById('composerTrigger');
+    const expanded   = document.getElementById('expandedComposer');
+    if (imageInput) imageInput.value = '';
+    if (preview)    preview.classList.add('d-none');
+    if (expanded)   expanded.classList.add('d-none');
+    if (trigger)    trigger.classList.remove('d-none');
+  });
+
+  // Submit post
+  document.getElementById('submitPostBtn')?.addEventListener('click', async () => {
+    const btn         = document.getElementById('submitPostBtn');
+    const content     = document.getElementById('postText').value.trim();
+    const imageInput  = document.getElementById('postImageInput');
+    const preview     = document.getElementById('imagePreview');
+    const trigger     = document.getElementById('composerTrigger');
+    const expanded    = document.getElementById('expandedComposer');
+
+    if (!content && (!imageInput || !imageInput.files[0])) return;
+
+    btn.disabled = true;
+    const originalBtnText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    const formData = new FormData();
+    formData.append('content', content);
+    if (imageInput && imageInput.files[0]) formData.append('image', imageInput.files[0]);
+
+    try {
+      const res  = await fetch("{% url 'feed:create_post' %}", {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        const feed = document.getElementById('feedContainer');
+        const emptyState = feed.querySelector('.cc-card.text-center');
+        if (emptyState) emptyState.remove();
+
+        const temp    = document.createElement('div');
+        temp.innerHTML = data.html;
+        const newPost  = temp.firstElementChild;
+        newPost.classList.add('animate-fade-in');
+        feed.prepend(newPost);
+
+        document.getElementById('postText').value = '';
+        if (imageInput) imageInput.value = '';
+        if (preview)    preview.classList.add('d-none');
+        if (expanded)   expanded.classList.add('d-none');
+        if (trigger)    trigger.classList.remove('d-none');
+
+        if (typeof showToast === 'function') showToast('Post shared successfully!', 'success');
+      } else {
+        if (typeof showToast === 'function') showToast(data.message || 'Error creating post', 'danger');
+      }
+    } catch (err) {
+      console.error(err);
+      if (typeof showToast === 'function') showToast('Connection error. Please try again.', 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalBtnText;
+    }
+  });
+
+  /* ═══════════════════════════════════════
+     SUGGESTIONS
+  ═══════════════════════════════════════ */
+  const fetchSuggestions = async () => {
+    const container = document.getElementById('suggestionsContainer');
+    try {
+      const res  = await fetch("{% url 'connections:suggestions_ajax' %}");
+      const data = await res.json();
+      if (data.status === 'success' && data.users.length > 0) {
+        container.innerHTML = data.users.map(u => `
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="profile-avatar shadow-sm" style="width:40px;height:40px;flex-shrink:0;">
+                <img src="${u.profile_picture}" class="rounded-circle w-100 h-100" style="object-fit:cover;">
+              </div>
+              <div style="line-height:1.2;">
+                <a href="/accounts/profile/${u.username}/" class="text-decoration-none text-dark fw-bold small d-block">${u.full_name}</a>
+                <span class="text-muted" style="font-size:0.75rem;">${u.department || u.role}</span>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-primary-cc follow-btn" data-user-id="${u.id}" style="font-size:0.75rem;padding:2px 12px;">Follow</button>
+          </div>
+        `).join('');
+      } else {
+        container.innerHTML = '<p class="text-muted small text-center py-2">No new suggestions at the moment.</p>';
+      }
+    } catch {
+      container.innerHTML = '<p class="text-muted small text-center py-2">Error loading suggestions.</p>';
+    }
+  };
+  fetchSuggestions();
+
+  /* ═══════════════════════════════════════
+     EVENTS
+  ═══════════════════════════════════════ */
+  const fetchEvents = async () => {
+    const container = document.getElementById('eventsContainer');
+    try {
+      const res  = await fetch("{% url 'campus_events:events_ajax' %}");
+      const data = await res.json();
+      if (data.status === 'success' && data.events.length > 0) {
+        container.innerHTML = data.events.map((e, index) => `
+          <div class="event-item mb-3 p-2 rounded" style="border-left:3px solid #007bff;background:rgba(0,123,255,0.03);">
+            <div class="d-flex justify-content-between align-items-start">
+              <h6 class="small fw-bold mb-0 text-primary">${e.title}</h6>
+              <span class="badge bg-white text-primary border" style="font-size:0.65rem;">${e.date}</span>
+            </div>
+            <p class="text-muted mb-1" style="font-size:0.7rem;"><i class="bi bi-geo-alt"></i> ${e.org_name} • ${e.location}</p>
+            <p class="text-dark small mb-0" style="font-size:0.75rem;line-height:1.3;">${e.description.length > 80 ? e.description.substring(0,80)+'...' : e.description}</p>
+          </div>
+        `).join('');
+      } else {
+        container.innerHTML = '<p class="text-muted small text-center py-2">No upcoming events. Stay tuned!</p>';
+      }
+    } catch {
+      container.innerHTML = '<p class="text-muted small text-center py-2">Error loading events.</p>';
+    }
+  };
+  fetchEvents();
+</script>
+{% endblock %}

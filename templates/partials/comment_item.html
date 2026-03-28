@@ -1,0 +1,9 @@
+<div class="comment-item d-flex gap-2 mb-2 p-2 bg-light rounded animate-fade-in">
+  <div class="profile-avatar" style="width:32px; height:32px; flex-shrink: 0;">
+    <img src="{{ comment.user.profile.get_avatar_url }}" class="rounded-circle w-100 h-100" style="object-fit:cover;">
+  </div>
+  <div class="flex-grow-1">
+    <div class="fw-600 small">{{ comment.user.full_name|default:comment.user.username }}</div>
+    <div class="small">{{ comment.content }}</div>
+  </div>
+</div>
